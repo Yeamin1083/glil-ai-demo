@@ -12,6 +12,25 @@ Intimation ─► Agent 1 extract ─► Human review ─► Agents 2+3 review �
 - **Agents 2 and 3** share one Gemini call that judges the documents: deductions, audit checks and a suggested status. Code then applies plan limits, the 60-day submission window, cycle dates and duplicates (`server/app/rules.py`).
 - **Plan** values are from ACPS_T plan_id 59 (org 7049, plan B), with the cycle shifted to Dec 2025–Nov 2026. The members and officers are fictional.
 
+## Who decides the status
+
+| Outcome | Decided by |
+|---|---|
+| REGRETTED: duplicate, late submission, outside the policy cycle, no limit left | Code. Always overrides the model. |
+| SETTLED, DOCUMENTS REQUIRED, or REGRETTED with a listed reason | Model, judging the documents. |
+| Model rejection without a listed reason | Code changes it to DOCUMENTS REQUIRED. |
+| Final status | Post-audit user, who signs off or sends the claim back. |
+
+The model chooses DOCUMENTS REQUIRED when a document is missing or there's a discrepancy the member could fix, such as dates, names or totals. It writes the request to the member into `required_documents`, which ACPS requires for that status.
+
+Deductions use a fixed remark list cleaned from ACPS `x_expense_remarks`. A bill-level discount is deducted with "Discount amount is not payable", because the amounts stay gross.
+
+## Demo-only shortcuts
+
+- **Patient name:** the members are fictional, so the patient name comes from the documents and is editable. Change it to show the name-mismatch check.
+- **Reference Date:** the submission date defaults to the stamped Dispatch Date, otherwise today. Old test documents fail the 60-day check against today.
+- **Data:** state lives in memory and resets when the server restarts.
+
 ## Run
 
 1. Start ocr-extract on port 8000 (`uv run uvicorn app.main:app --port 8000` in that repo).
