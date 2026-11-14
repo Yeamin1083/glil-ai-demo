@@ -24,16 +24,18 @@ def fixtures():
             "code": code,
             "name": m["name"],
             "relation": m["relation"],
-            "limit_remaining": max(fx.PLAN["opd_limit"] - m["consumed"], 0),
+            "is_active": m["is_active"],
+            "plan": m["plan"],
+            "limit_remaining": max(m["plan"]["opd_limit"] - m["consumed"], 0),
         }
         for code, m in fx.MEMBERS.items()
     ]
-    plan = {
-        **fx.PLAN,
-        "item_limits": fx.ITEM_LIMITS,
-        "item_count_limits": fx.ITEM_COUNT_LIMITS,
+    return {
+        "source": fx.SOURCE,
+        "samples": fx.SAMPLES,
+        "members": members,
+        "users": fx.USERS,
     }
-    return {"members": members, "plan": plan}
 
 
 @app.post("/api/extract")

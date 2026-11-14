@@ -1,9 +1,11 @@
 import { STATUS_TONE } from '../../../shared/constants'
 import { bdt, humanize } from '../../../shared/format'
-import type { Review } from '../types'
+import type { OfficerDecision, Review } from '../types'
+import { OfficerComparison } from './OfficerComparison'
 
 interface Props {
   review: Review
+  officerDecision: OfficerDecision | null
   reviewedBy: string
   canSignOff: boolean
   busy: boolean
@@ -11,7 +13,8 @@ interface Props {
   onSignOff: () => void
 }
 
-export function ProcessStep({ review, reviewedBy, canSignOff, busy, onBack, onSignOff }: Props) {
+export function ProcessStep(props: Props) {
+  const { review, officerDecision, reviewedBy, canSignOff, busy, onBack, onSignOff } = props
   const failed = review.checks.filter((c) => !c.passed).length
 
   return (
@@ -30,6 +33,8 @@ export function ProcessStep({ review, reviewedBy, canSignOff, busy, onBack, onSi
           <div><dt>OPD limit left</dt><dd>{bdt(review.limit_before)} → {bdt(review.limit_after)}</dd></div>
         </dl>
       </section>
+
+      {officerDecision && <OfficerComparison officer={officerDecision} review={review} />}
 
       <div className="two-col">
         <section className="card">

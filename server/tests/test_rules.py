@@ -3,21 +3,28 @@ import copy
 import pytest
 
 from app import fixtures as fx
-from app.rules import record_settlement, review
+from app.rules import names_match, record_settlement, review
 from app.schemas import ClaimIn, ExpenseIn, LineJudgement, ModelReview
 
 
 @pytest.fixture(autouse=True)
 def fresh_fixtures(monkeypatch):
-    monkeypatch.setattr(fx, "MEMBERS", copy.deepcopy(fx.MEMBERS))
-    monkeypatch.setattr(fx, "HISTORY", {code: [] for code in fx.MEMBERS})
+    # always the fictional members, whether or not members.local.json exists
+    members = copy.deepcopy(fx._FICTIONAL["members"])
+    monkeypatch.setattr(fx, "MEMBERS", members)
+    monkeypatch.setattr(fx, "HISTORY", {code: [] for code in members})
 
 
 def claim(
-    member: str, expenses: dict[str, int], treated="01-11-2026", submitted="10-11-2026"
+    member: str,
+    expenses: dict[str, int],
+    treated="01-11-2026",
+    submitted="10-11-2026",
+    patient=None,
 ):
     return ClaimIn(
         member_code=member,
+        patient_name=patient or fx.MEMBERS[member]["name"],
         claim_type="GENERAL",
         treatment_date=treated,
         reference_date=submitted,
@@ -85,3 +92,21 @@ def test_model_rejection_without_listed_reason_asks_for_documents():
     )
     result = review(claim("DEMO-7049-0001", {"MEDICINE": 500}), model)
     assert (result.status, result.rejection_reason) == ("DOCUMENTS REQUIRED", None)
+
+
+def test_names_match_ignores_titles_and_initials():
+    assert names_match("A.K.M. Nurul Huda", "Mr. AKM Nurul Huda")
+    assert names_match("Nurul Huda", "Md. A.K.M. Nurul Huda")
+    assert not names_match("Rahim Uddin", "Mr. AKM Nurul Huda")
+    assert not names_match("Rahim Uddin", "")
+
+
+def test_other_persons_documents_are_regretted_for_name_mismatch():
+    result = review(
+        claim("DEMO-7049-0001", {"MEDICINE": 500}, patient="Mr. AKM Nurul Huda"),
+        settled(),
+    )
+    assert (result.status, result.rejection_reason) == (
+        "REGRETTED",
+        fx.REASON_NAME_MISMATCH,
+    )

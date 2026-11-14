@@ -5,18 +5,19 @@ import { OracleStep } from './features/claim/components/OracleStep'
 import { ProcessStep } from './features/claim/components/ProcessStep'
 import { ReviewStep } from './features/claim/components/ReviewStep'
 import { fromExtraction, toClaimIn, type ClaimForm, type FormField } from './features/claim/form'
-import type { Confidence, Extraction, Fixtures, OracleRecord, Review } from './features/claim/types'
-import { OFFICERS, ROLE, ROLE_LABEL, STEP, STEP_LABEL, type Step } from './shared/constants'
+import type { Confidence, Extraction, Fixtures, OracleRecord, Review, Sample } from './features/claim/types'
+import { ROLE, ROLE_LABEL, STEP, STEP_LABEL, type Step } from './shared/constants'
 import { bdt } from './shared/format'
 
 export default function App() {
   const [fixtures, setFixtures] = useState<Fixtures | null>(null)
-  const [officerId, setOfficerId] = useState(OFFICERS[0].id)
+  const [officerId, setOfficerId] = useState('')
   const [step, setStep] = useState<Step>(STEP.INTIMATION)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [file, setFile] = useState<File | null>(null)
+  const [sample, setSample] = useState<Sample | null>(null)
   const [extraction, setExtraction] = useState<Extraction | null>(null)
   const [form, setForm] = useState<ClaimForm | null>(null)
   const [confidence, setConfidence] = useState<Partial<Record<FormField, Confidence>>>({})
@@ -24,7 +25,8 @@ export default function App() {
   const [reviewedBy, setReviewedBy] = useState('')
   const [record, setRecord] = useState<OracleRecord | null>(null)
 
-  const officer = OFFICERS.find((o) => o.id === officerId)!
+  const users = fixtures?.users ?? []
+  const officer = users.find((u) => u.id === officerId) ?? users[0]
   const member = fixtures?.members.find((m) => m.code === form?.member_code)
 
   const loadFixtures = () => getFixtures().then(setFixtures).catch((e: Error) => setError(e.message))
@@ -44,11 +46,12 @@ export default function App() {
     }
   }
 
-  const intimate = (doc: File, memberCode: string) =>
+  const intimate = (doc: File, memberCode: string, chosen: Sample | null) =>
     run(async () => {
       const result = await extractClaim(doc)
-      const prefilled = fromExtraction(result, memberCode)
+      const prefilled = fromExtraction(result, memberCode, chosen?.reference_date)
       setFile(doc)
+      setSample(chosen)
       setExtraction(result)
       setForm(prefilled.form)
       setConfidence(prefilled.confidence)
@@ -58,18 +61,19 @@ export default function App() {
   const sendToProcessing = () =>
     run(async () => {
       setReview(await reviewClaim(file!, toClaimIn(form!)))
-      setReviewedBy(officer.name)
+      setReviewedBy(officer!.name)
       setStep(STEP.PROCESS)
     })
 
   const signOff = () =>
     run(async () => {
-      setRecord(await approveClaim(toClaimIn(form!), review!, reviewedBy, officer.name))
+      setRecord(await approveClaim(toClaimIn(form!), review!, reviewedBy, officer!.name))
       setStep(STEP.ORACLE)
     })
 
   const reset = () => {
     setFile(null)
+    setSample(null)
     setExtraction(null)
     setForm(null)
     setReview(null)
@@ -87,16 +91,16 @@ export default function App() {
             <strong>Claims AI</strong>
             <span className="muted small">
               Group health · OPD pilot ≤ {bdt(5000)}
-              {fixtures && ` · Org ${fixtures.plan.organization_code} plan ${fixtures.plan.plan_name}`}
+              {fixtures && ` · data: ${fixtures.source}`}
             </span>
           </div>
         </div>
         <label className="acting-as">
           <span className="muted small">Acting as</span>
-          <select value={officerId} onChange={(e) => setOfficerId(e.target.value)}>
-            {OFFICERS.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name} · {ROLE_LABEL[o.role]}
+          <select value={officer?.id ?? ''} onChange={(e) => setOfficerId(e.target.value)}>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name} · {ROLE_LABEL[u.role]}
               </option>
             ))}
           </select>
@@ -126,7 +130,12 @@ export default function App() {
         {!fixtures ? (
           <p className="muted">Loading demo data…</p>
         ) : step === STEP.INTIMATION ? (
-          <IntimationStep members={fixtures.members} busy={busy} onSubmit={intimate} />
+          <IntimationStep
+            members={fixtures.members}
+            samples={fixtures.samples}
+            busy={busy}
+            onSubmit={intimate}
+          />
         ) : step === STEP.REVIEW && file && extraction && form && member ? (
           <ReviewStep
             file={file}
@@ -134,7 +143,7 @@ export default function App() {
             member={member}
             form={form}
             confidence={confidence}
-            canSubmit={officer.role === ROLE.CLAIMS_OFFICER}
+            canSubmit={officer?.role === ROLE.CLAIMS_OFFICER}
             busy={busy}
             onChange={setForm}
             onSubmit={sendToProcessing}
@@ -142,8 +151,9 @@ export default function App() {
         ) : step === STEP.PROCESS && review ? (
           <ProcessStep
             review={review}
+            officerDecision={sample?.officer_decision ?? null}
             reviewedBy={reviewedBy}
-            canSignOff={officer.role === ROLE.POST_AUDITOR}
+            canSignOff={officer?.role === ROLE.POST_AUDITOR}
             busy={busy}
             onBack={() => setStep(STEP.REVIEW)}
             onSignOff={signOff}

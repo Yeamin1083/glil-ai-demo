@@ -37,7 +37,7 @@ async def review_claim(claim: ClaimIn, document: bytes, mime_type: str) -> Model
         claim=claim.model_dump_json(indent=2),
         member=json.dumps(
             {
-                "name": claim.patient_name or member["name"],
+                "name": member["name"],
                 "relation": member["relation"],
             }
         ),

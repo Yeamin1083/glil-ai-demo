@@ -1,6 +1,6 @@
 # glil-ai-demo
 
-Demo of the ACPS claims flow with AI agents, for OPD group health claims up to 5,000 BDT. No database: the plan, members and claim history are hardcoded and reset when the server restarts.
+Demo of the ACPS claims flow with AI agents, for OPD group health claims up to 5,000 BDT. It runs on real ACPS_T claims, but it has no database connection: the data is exported once to a local file, and the demo's changes live in memory and reset when the server restarts.
 
 ```
 Intimation ─► Agent 1 extract ─► Human review ─► Agents 2+3 review ─► Post-audit ─► "Oracle"
@@ -9,27 +9,43 @@ Intimation ─► Agent 1 extract ─► Human review ─► Agents 2+3 review �
 ```
 
 - **Agent 1** is the real `ocr-extract` service, called over HTTP.
-- **Agents 2 and 3** share one Gemini call that judges the documents: deductions, audit checks and a suggested status. Code then applies plan limits, the 60-day submission window, cycle dates and duplicates (`server/app/rules.py`).
-- **Plan** values are from ACPS_T plan_id 59 (org 7049, plan B), with the cycle shifted to Dec 2025–Nov 2026. The members and officers are fictional.
+- **Agents 2 and 3** share one Gemini call that judges the documents: deductions, audit checks and a suggested status. Code then applies the member's plan limits, submission window, cycle dates, member status, name match and duplicates (`server/app/rules.py`).
+- **The officer's actual decision** from ACPS is shown beside the AI's for each sample, so you can see where they agree.
+
+## Data
+
+`server/members.local.json` is exported read-only from ACPS_T by `server/scripts/export_acps_t.py`. It holds, for each sample claim:
+
+- **The member:** name, relation, active status, plan limits, cycle, submission window, the limit already used before this claim, and earlier claims for the duplicate check.
+- **The officer's decision:** status, reason, documents asked for, and expenses with remarks.
+- **Users from `x_users`:** the claims officers assigned to the samples, plus an active claim analyst as post-auditor.
+
+The file holds real member and staff names, so it is **gitignored and must never be committed**. Without it, the server falls back to three fictional members on ACPS_T plan_id 59.
+
+To regenerate it (VPN needed, run from the ACPS repo with its venv):
+
+```
+cd ~/Projects/work/acps
+PYTHONPATH=. .venv/bin/python ~/Projects/personal/glil-ai-demo/server/scripts/export_acps_t.py \
+    ~/Projects/personal/glil-ai-demo/server/members.local.json <intimation numbers…>
+```
+
+Samples are chosen as OPD claims up to 5,000 BDT whose member is active and enrolled for the claim's cycle, and whose assigned officer is active in `x_users`. Each needs its documents as one PDF (the "all documents" PDF from ACPS), with printed documents, not handwritten.
 
 ## Who decides the status
 
 | Outcome | Decided by |
 |---|---|
-| REGRETTED: duplicate, late submission, outside the policy cycle, no limit left | Code. Always overrides the model. |
+| REGRETTED: inactive member, duplicate, late submission, outside the cycle, name mismatch, no limit left | Code. Always overrides the model. |
 | SETTLED, DOCUMENTS REQUIRED, or REGRETTED with a listed reason | Model, judging the documents. |
 | Model rejection without a listed reason | Code changes it to DOCUMENTS REQUIRED. |
 | Final status | Post-audit user, who signs off or sends the claim back. |
 
-The model chooses DOCUMENTS REQUIRED when a document is missing or there's a discrepancy the member could fix, such as dates, names or totals. It writes the request to the member into `required_documents`, which ACPS requires for that status.
+The model chooses DOCUMENTS REQUIRED when a document is missing or there's a discrepancy the member could fix, such as dates or totals. It writes the request to the member into `required_documents`, which ACPS requires for that status.
+
+The name check compares the patient on the documents with the member's name, ignoring titles, initials and punctuation ("Mr. A.K.M. Nurul Huda" matches "Nurul Huda"). Another person's documents are rejected as NAME MISMATCH.
 
 Deductions use a fixed remark list cleaned from ACPS `x_expense_remarks`. A bill-level discount is deducted with "Discount amount is not payable", because the amounts stay gross.
-
-## Demo-only shortcuts
-
-- **Patient name:** the members are fictional, so the patient name comes from the documents and is editable. Change it to show the name-mismatch check.
-- **Reference Date:** the submission date defaults to the stamped Dispatch Date, otherwise today. Old test documents fail the 60-day check against today.
-- **Data:** state lives in memory and resets when the server restarts.
 
 ## Run
 
@@ -49,11 +65,14 @@ Deductions use a fixed remark list cleaned from ACPS `x_expense_remarks`. A bill
 
 ## Demo script
 
-- **Normal claim:** pick Rahim Uddin, a member with plenty of OPD limit left.
-- **Limit runs out:** pick Nasrin Akter, who has 1,100 BDT left. Payable is capped at "As per remaining limit".
-- **Spectacles already used:** pick Tanvir Hasan, who has had spectacles 4 times this cycle, the plan maximum.
-- **Duplicate:** sign a claim off, then submit the same document again. It is rejected as DOUBLE/WRONGLY CLAIM, and the member's remaining limit has dropped.
-- **Roles:** switch "Acting as" in the header. Only a Claims Officer can confirm the review, and only a Post-audit user can sign off.
+1. **Intimation:** pick a sample claim. Its real member, plan and limit left are shown. Upload that claim's documents.
+2. **Review:** acting as a Claims Officer, check the pre-filled form against the document and confirm.
+3. **Processing and audit:** compare the AI's decision with the officer's actual one.
+4. **Post-audit:** switch "Acting as" to the Post-audit user and sign off.
+
+To show the other checks:
+- **Name mismatch:** upload another claim's documents for a sample.
+- **Duplicate:** sign a claim off, then submit the same documents again.
 
 ## Checks
 

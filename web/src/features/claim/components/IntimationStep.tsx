@@ -1,35 +1,66 @@
 import { useState } from 'react'
 import { bdt } from '../../../shared/format'
-import type { Member } from '../types'
+import type { Member, Sample } from '../types'
 
 interface Props {
   members: Member[]
+  samples: Sample[]
   busy: boolean
-  onSubmit: (file: File, memberCode: string) => void
+  onSubmit: (file: File, memberCode: string, sample: Sample | null) => void
 }
 
-export function IntimationStep({ members, busy, onSubmit }: Props) {
+export function IntimationStep({ members, samples, busy, onSubmit }: Props) {
+  // with ACPS samples loaded, the officer picks the claim; otherwise just a member
+  const [sampleNo, setSampleNo] = useState(samples[0]?.intimation_number ?? '')
   const [memberCode, setMemberCode] = useState(members[0]?.code ?? '')
   const [file, setFile] = useState<File | null>(null)
+
+  const sample = samples.find((s) => s.intimation_number === sampleNo) ?? null
+  const code = sample ? sample.member_code : memberCode
+  const member = members.find((m) => m.code === code)
 
   return (
     <section className="card narrow">
       <h2>Claim intimation</h2>
       <p className="muted">
-        Pick the member and upload the claim documents (bills, money receipts, prescription) as one
-        PDF or image. Agent 1 reads them and pre-fills the intimation.
+        Pick the claim and upload its documents (bills, money receipts, prescription) as one PDF or
+        image. Agent 1 reads them and pre-fills the intimation.
       </p>
 
-      <label className="field">
-        <span>Member</span>
-        <select value={memberCode} onChange={(e) => setMemberCode(e.target.value)}>
-          {members.map((m) => (
-            <option key={m.code} value={m.code}>
-              {m.name} · {m.relation} · {m.code} · {bdt(m.limit_remaining)} OPD limit left
-            </option>
-          ))}
-        </select>
-      </label>
+      {samples.length > 0 ? (
+        <label className="field">
+          <span>Claim (ACPS_T)</span>
+          <select value={sampleNo} onChange={(e) => setSampleNo(e.target.value)}>
+            {samples.map((s) => (
+              <option key={s.intimation_number} value={s.intimation_number}>
+                {s.intimation_number} · submitted {s.reference_date}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <label className="field">
+          <span>Member</span>
+          <select value={memberCode} onChange={(e) => setMemberCode(e.target.value)}>
+            {members.map((m) => (
+              <option key={m.code} value={m.code}>
+                {m.name} · {m.relation} · {m.code}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {member && (
+        <dl className="member-card">
+          <div><dt>Member</dt><dd>{member.name}</dd></div>
+          <div><dt>Member code</dt><dd>{member.code} · {member.relation}</dd></div>
+          <div><dt>Status</dt><dd className={member.is_active ? '' : 'bad'}>{member.is_active ? 'Active' : 'Inactive'}</dd></div>
+          <div><dt>Plan</dt><dd>{member.plan.plan_name} · OPD {member.plan.claim_type} {bdt(member.plan.opd_limit)}</dd></div>
+          <div><dt>Cycle</dt><dd>{member.plan.cycle_start} to {member.plan.cycle_end}</dd></div>
+          <div><dt>OPD limit left</dt><dd>{bdt(member.limit_remaining)}</dd></div>
+        </dl>
+      )}
 
       <label className={`dropzone${file ? ' has-file' : ''}`}>
         <input
@@ -46,8 +77,8 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
       <div className="actions">
         <button
           className="primary"
-          disabled={!file || !memberCode || busy}
-          onClick={() => file && onSubmit(file, memberCode)}
+          disabled={!file || !code || busy}
+          onClick={() => file && onSubmit(file, code, sample)}
         >
           {busy ? 'Agent 1 is reading the documents…' : 'Intimate & extract'}
         </button>

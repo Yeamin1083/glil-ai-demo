@@ -14,7 +14,6 @@ class ClaimIn(BaseModel):
     """The officer-reviewed intimation, sent with the documents to /review."""
 
     member_code: str
-    # demo members are fictional, so the insured name is the patient on the documents
     patient_name: str = ""
     claim_type: str
     treatment_date: str  # dd-mm-yyyy, as ACPS

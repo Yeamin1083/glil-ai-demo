@@ -1,4 +1,4 @@
-// fictional staff for the demo; roles mirror the human steps in the ACPS flow
+// roles of the human steps in the ACPS flow; the users themselves come from /api/fixtures
 export const ROLE = {
   CLAIMS_OFFICER: 'CLAIMS_OFFICER',
   POST_AUDITOR: 'POST_AUDITOR',
@@ -9,18 +9,6 @@ export const ROLE_LABEL: Record<Role, string> = {
   CLAIMS_OFFICER: 'Claims Officer',
   POST_AUDITOR: 'Post-audit',
 }
-
-export interface Officer {
-  id: string
-  name: string
-  role: Role
-}
-
-export const OFFICERS: Officer[] = [
-  { id: 'o1', name: 'Farhana Islam', role: ROLE.CLAIMS_OFFICER },
-  { id: 'o2', name: 'Arif Hossain', role: ROLE.CLAIMS_OFFICER },
-  { id: 'o3', name: 'Imran Chowdhury', role: ROLE.POST_AUDITOR },
-]
 
 export const STEP = {
   INTIMATION: 0,

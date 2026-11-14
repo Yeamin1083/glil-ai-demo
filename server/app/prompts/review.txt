@@ -25,7 +25,7 @@ STEP 2: checks
 Return these checks, each with passed true/false and a one-line detail naming what you saw:
 - "Prescription present": a physician prescription or advice for this treatment
 - "Money receipts present": paid receipts that support the claimed amount
-- "Patient name matches member": the patient on the documents is the member named above. Titles, initials, spacing, spelling and missing parts of a name are the same person ("Mr. AKM Nurul Huda" = "A.K.M. N. Huda" = "Nurul Huda"). Fail only when a document clearly names a different person; a missing name on a pharmacy receipt passes.
+- "Same patient on all documents": every document that names a patient names the same person. Titles, initials and spelling variants are the same person; a receipt without a name passes.
 - "Dates consistent": document dates match the treatment date
 - "Bill totals add up": the line amounts sum to the bill totals
 - "Treatment covered": not an excluded treatment (infertility, family planning, cosmetic or beautification, vaccination, psychiatric or anxiety, congenital anomaly)

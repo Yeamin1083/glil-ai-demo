@@ -35,14 +35,15 @@ export function todayDdMmYyyy(): string {
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`
 }
 
-export function fromExtraction(ex: Extraction, memberCode: string) {
+// referenceDate: the real submission date when the claim is an ACPS sample
+export function fromExtraction(ex: Extraction, memberCode: string, referenceDate?: string) {
   const form: ClaimForm = {
     member_code: memberCode,
     patient_name: ex.patient_name ?? '',
     claim_type: text(ex.claim_type) || 'GENERAL',
     treatment_date: text(ex.treatment_date),
     // paper claims are stamped on receipt, so the dispatch date is the closest submission date
-    reference_date: text(ex.dispatch_date) || todayDdMmYyyy(),
+    reference_date: referenceDate || text(ex.dispatch_date) || todayDdMmYyyy(),
     dispatch_number: text(ex.dispatch_number),
     dispatch_date: text(ex.dispatch_date),
     claimed_amount: text(ex.claimed_amount),

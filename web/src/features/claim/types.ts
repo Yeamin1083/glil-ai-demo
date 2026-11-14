@@ -25,17 +25,10 @@ export interface Extraction {
   summary: string | null
 }
 
-export interface Member {
-  code: string
-  name: string
-  relation: string
-  limit_remaining: number
-}
-
 export interface Plan {
   plan_id: number
-  organization_code: string
   plan_name: string
+  claim_type: string
   cycle_start: string
   cycle_end: string
   opd_limit: number
@@ -44,9 +37,46 @@ export interface Plan {
   item_count_limits: Record<string, number>
 }
 
-export interface Fixtures {
-  members: Member[]
+export interface Member {
+  code: string
+  name: string
+  relation: string
+  is_active: boolean
   plan: Plan
+  limit_remaining: number
+}
+
+export interface OfficerDecision {
+  status: Status
+  rejection_reason: string | null
+  required_documents: string | null
+  claimed_amount: number
+  payable_amount: number
+  expenses: { category: string; claimed: number; deducted: number; payable: number; remarks: string | null }[]
+  reviewed_by: string | null
+  decided_by: string | null
+}
+
+// a real claim from ACPS_T: its member, submission date and what the officer decided
+export interface Sample {
+  intimation_number: string
+  member_code: string
+  reference_date: string
+  officer_decision: OfficerDecision
+}
+
+export interface User {
+  id: string
+  name: string
+  designation: string | null
+  role: 'CLAIMS_OFFICER' | 'POST_AUDITOR'
+}
+
+export interface Fixtures {
+  source: string
+  samples: Sample[]
+  members: Member[]
+  users: User[]
 }
 
 export interface ExpenseIn {
