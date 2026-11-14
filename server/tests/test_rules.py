@@ -1,0 +1,87 @@
+import copy
+
+import pytest
+
+from app import fixtures as fx
+from app.rules import record_settlement, review
+from app.schemas import ClaimIn, ExpenseIn, LineJudgement, ModelReview
+
+
+@pytest.fixture(autouse=True)
+def fresh_fixtures(monkeypatch):
+    monkeypatch.setattr(fx, "MEMBERS", copy.deepcopy(fx.MEMBERS))
+    monkeypatch.setattr(fx, "HISTORY", {code: [] for code in fx.MEMBERS})
+
+
+def claim(
+    member: str, expenses: dict[str, int], treated="01-11-2026", submitted="10-11-2026"
+):
+    return ClaimIn(
+        member_code=member,
+        claim_type="GENERAL",
+        treatment_date=treated,
+        reference_date=submitted,
+        claimed_amount=sum(expenses.values()),
+        expenses=[ExpenseIn(category=c, claimed=a) for c, a in expenses.items()],
+    )
+
+
+def settled(lines=()):
+    return ModelReview(lines=list(lines), checks=[], status="SETTLED", summary="")
+
+
+def test_model_deduction_then_settle():
+    result = review(
+        claim("DEMO-7049-0001", {"MEDICINE": 1500, "GENERAL_PRACTITIONER": 800}),
+        settled(
+            [
+                LineJudgement(
+                    category="MEDICINE", deducted=300, remark="Calcium cost not payable"
+                )
+            ]
+        ),
+    )
+    assert result.status == "SETTLED"
+    assert result.total_payable == 2000
+    assert result.single_step_approval
+
+
+def test_remaining_limit_caps_payable():
+    # member 2 has 1,100 left of 50,000
+    result = review(
+        claim("DEMO-7049-0002", {"MEDICINE": 900, "INVESTIGATION": 900}), settled()
+    )
+    assert [e.payable for e in result.expenses] == [900, 200]
+    assert result.expenses[1].remarks == [fx.REMARK_PARTIAL_LIMIT]
+    assert result.limit_after == 0
+
+
+def test_spectacles_count_used_up_regrets_for_no_limit():
+    # member 3 already had spectacles 4 times
+    result = review(claim("DEMO-7049-0003", {"SPECTACLES": 2000}), settled())
+    assert result.expenses[0].payable == 0
+    assert (result.status, result.rejection_reason) == ("REGRETTED", fx.REASON_NO_LIMIT)
+
+
+def test_late_submission_overrides_model():
+    result = review(
+        claim("DEMO-7049-0001", {"MEDICINE": 500}, treated="01-08-2026"), settled()
+    )
+    assert (result.status, result.rejection_reason) == ("REGRETTED", fx.REASON_LATE)
+    assert result.total_payable == 0
+
+
+def test_resubmitted_claim_is_duplicate_and_limits_move():
+    first = claim("DEMO-7049-0001", {"MEDICINE": 1000})
+    record_settlement(first, review(first, settled()))
+    assert fx.MEMBERS["DEMO-7049-0001"]["consumed"] == 9_450
+    again = review(first, settled())
+    assert (again.status, again.rejection_reason) == ("REGRETTED", fx.REASON_DUPLICATE)
+
+
+def test_model_rejection_without_listed_reason_asks_for_documents():
+    model = ModelReview(
+        lines=[], checks=[], status="REGRETTED", rejection_reason="OTHERS", summary=""
+    )
+    result = review(claim("DEMO-7049-0001", {"MEDICINE": 500}), model)
+    assert (result.status, result.rejection_reason) == ("DOCUMENTS REQUIRED", None)
