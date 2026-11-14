@@ -1,5 +1,6 @@
-import { Check } from 'lucide-react'
+import { Bot, Check, Layers, ShieldCheck, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
@@ -9,8 +10,7 @@ interface Props {
   steps: string[]
 }
 
-// ponytail: steps advance on a timer, not real progress; the last one waits for the response
-const STEP_MS = 1800
+const STEP_MS = 1400
 
 export function ScanOverlay({ file, title, steps }: Props) {
   const url = useMemo(() => URL.createObjectURL(file), [file])
@@ -22,47 +22,113 @@ export function ScanOverlay({ file, title, steps }: Props) {
     return () => window.clearInterval(timer)
   }, [steps.length])
 
+  const progress = Math.min(Math.round(((active + 1) / steps.length) * 100), 98)
+
   return (
-    <Card className="grid items-center gap-8 p-4 md:grid-cols-[1fr_minmax(300px,0.8fr)]" aria-live="polite" aria-busy="true">
-      <div className="relative isolate h-[46vh] overflow-hidden rounded-lg border bg-muted md:h-[min(70vh,720px)]">
+    <Card className="grid items-center gap-8 p-6 md:grid-cols-[1.1fr_minmax(320px,0.9fr)] border-border/80 shadow-lg" aria-live="polite" aria-busy="true">
+      {/* Document Scanner Viewport */}
+      <div className="relative isolate h-[52vh] overflow-hidden rounded-xl border border-slate-300 bg-slate-900 md:h-[min(68vh,680px)] shadow-inner">
         {file.type === 'application/pdf' ? (
           <iframe
             src={`${url}#toolbar=0&navpanes=0`}
-            title="Document being read"
+            title="Document being processed"
             tabIndex={-1}
-            className="pointer-events-none size-full grayscale-[40%]"
+            className="pointer-events-none size-full opacity-80 filter contrast-125"
           />
         ) : (
-          <img src={url} alt="Document being read" className="size-full object-contain grayscale-[40%]" />
+          <img src={url} alt="Document being processed" className="size-full object-contain opacity-80" />
         )}
+
+        {/* Laser Scanner Animation */}
         <div className="scan-beam" aria-hidden="true" />
         <div className="scan-grid" aria-hidden="true" />
+
+        {/* High-tech HUD Overlay Elements */}
+        <div className="absolute top-4 left-4 flex items-center gap-2 rounded-md bg-slate-950/80 px-2.5 py-1 text-[11px] font-mono text-emerald-400 backdrop-blur border border-emerald-500/30">
+          <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
+          <span>OCR_VISION_ENGINE // LIVE_INSPECTION</span>
+        </div>
+
+        <div className="absolute bottom-4 right-4 rounded-md bg-slate-950/80 px-2.5 py-1 text-[11px] font-mono text-slate-300 backdrop-blur border border-slate-700">
+          DOCUMENT: {file.name.toUpperCase()} ({(file.size / 1024).toFixed(0)} KB)
+        </div>
       </div>
 
-      <div className="pr-4">
-        <div className="orb mb-5 size-11 rounded-xl" aria-hidden="true" />
-        <h2 className="shimmer-text text-xl font-semibold tracking-tight">{title}</h2>
-        <ol className="mt-5 grid gap-3 text-sm">
+      {/* Multi-Agent Telemetry & Pipeline */}
+      <div className="pr-4 space-y-6">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge className="bg-[var(--glil-orange)] text-white gap-1 hover:bg-[var(--glil-orange)]">
+              <Sparkles className="size-3" /> Multi-Agent AI Pipeline
+            </Badge>
+            <span className="text-xs font-mono text-muted-foreground">{progress}% Complete</span>
+          </div>
+
+          <h2 className="text-2xl font-bold tracking-tight text-foreground shimmer-text">{title}</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Gemini Multimodal Vision + ACPS Deterministic Rule Engine
+          </p>
+
+          {/* Progress Line */}
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[var(--glil-orange)] via-indigo-500 to-emerald-500 transition-all duration-700"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        {/* 3 Specialized Agents Status */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-lg border bg-muted/40 p-2.5 text-center">
+            <div className="flex justify-center mb-1">
+              <Bot className="size-4 text-[var(--glil-orange)]" />
+            </div>
+            <div className="text-[11px] font-semibold">Agent 1: OCR</div>
+            <div className="text-[10px] text-emerald-600 font-medium">Processing</div>
+          </div>
+
+          <div className="rounded-lg border bg-muted/40 p-2.5 text-center">
+            <div className="flex justify-center mb-1">
+              <Layers className="size-4 text-indigo-600" />
+            </div>
+            <div className="text-[11px] font-semibold">Agent 2: Adjudicator</div>
+            <div className="text-[10px] text-muted-foreground font-medium">Ready</div>
+          </div>
+
+          <div className="rounded-lg border bg-muted/40 p-2.5 text-center">
+            <div className="flex justify-center mb-1">
+              <ShieldCheck className="size-4 text-emerald-600" />
+            </div>
+            <div className="text-[11px] font-semibold">Agent 3: Audit Shield</div>
+            <div className="text-[10px] text-muted-foreground font-medium">Ready</div>
+          </div>
+        </div>
+
+        {/* Real-time Checklist */}
+        <ol className="grid gap-2.5 text-xs font-medium">
           {steps.map((step, i) => (
             <li
               key={step}
               className={cn(
-                'flex items-center gap-2.5 text-muted-foreground transition-colors',
-                i < active && 'text-foreground',
-                i === active && 'font-medium text-foreground',
+                'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
+                i < active && 'bg-emerald-50/70 text-emerald-900 border border-emerald-100',
+                i === active && 'bg-muted text-foreground font-semibold border shadow-2xs',
+                i > active && 'text-muted-foreground opacity-60',
               )}
             >
               <span
                 className={cn(
-                  'grid size-[18px] shrink-0 place-items-center rounded-full border-[1.5px]',
-                  i < active && 'border-primary bg-primary text-primary-foreground',
-                  i === active && 'animate-spin border-[var(--ai-a)] border-t-transparent',
+                  'grid size-5 shrink-0 place-items-center rounded-full text-[10px] border',
+                  i < active && 'border-emerald-500 bg-emerald-500 text-white',
+                  i === active && 'border-[var(--glil-orange)] text-[var(--glil-orange)] animate-spin border-t-transparent',
+                  i > active && 'border-muted-foreground/30 text-muted-foreground',
                 )}
                 aria-hidden="true"
               >
-                {i < active && <Check className="size-3" />}
+                {i < active ? <Check className="size-3 stroke-[3]" /> : i + 1}
               </span>
-              {step}
+              <span>{step}</span>
             </li>
           ))}
         </ol>

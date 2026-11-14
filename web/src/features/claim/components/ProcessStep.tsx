@@ -1,8 +1,8 @@
-import { Check, X } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, FileCheck, Send, ShieldCheck, Sparkles, X, Zap } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { Typewriter } from '@/shared/components/Typewriter'
@@ -24,7 +24,6 @@ interface Props {
 
 const order = (i: number) => ({ '--i': i }) as CSSProperties
 
-// only compare with the officer when these documents are clearly that claim's
 function sameClaim(officer: OfficerDecision, review: Review) {
   const samePatient = review.checks.find((c) => c.check === NAME_CHECK)?.passed ?? false
   const gap = Math.abs(officer.claimed_amount - review.total_claimed)
@@ -35,59 +34,130 @@ export function ProcessStep(props: Props) {
   const { review, officerDecision, reviewedBy, canSignOff, busy, onBack, onSignOff } = props
   const failed = review.checks.filter((c) => !c.passed).length
   const tone = STATUS_TONE[review.status]
+  const deductionsTotal = review.total_claimed - review.total_payable
 
   return (
-    <div className="grid gap-4">
-      <Card className="ai-top" aria-live="polite">
-        <CardContent className="grid gap-8 md:grid-cols-[1fr_auto]">
-          <div>
-            <p className="text-sm text-muted-foreground">The AI recommends</p>
-            <p className={cn('land my-1.5 text-4xl font-bold tracking-tight', TONE_TEXT[tone])}>
-              {STATUS_LABEL[review.status]}
-            </p>
-            {review.rejection_reason && <p className="mb-2 font-medium">{humanize(review.rejection_reason)}</p>}
-            {review.required_documents && (
-              <p className="mb-2 font-medium">Ask the member for: {review.required_documents}</p>
-            )}
-            <p className="max-w-[70ch] text-[15px] leading-relaxed">
-              <Typewriter text={review.summary} delayMs={450} />
-            </p>
+    <div className="grid gap-6">
+      {/* Executive Decision Banner */}
+      <Card className="ai-top border-border/80 shadow-md overflow-hidden" aria-live="polite">
+        <div className="p-6">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="space-y-3 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="border-orange-200 bg-orange-50 text-[var(--glil-orange)] text-xs font-semibold gap-1">
+                  <Sparkles className="size-3" /> Autonomous Adjudication Verdict
+                </Badge>
+                {review.single_step_approval && (
+                  <Badge className="bg-emerald-600 text-white text-xs font-semibold gap-1 hover:bg-emerald-600">
+                    <Zap className="size-3" /> Instant STP Qualified (≤ ৳3,000)
+                  </Badge>
+                )}
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Recommended Decision</p>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className={cn('text-3xl sm:text-4xl font-extrabold tracking-tight', TONE_TEXT[tone])}>
+                    {STATUS_LABEL[review.status]}
+                  </span>
+                  {review.status === 'SETTLED' ? (
+                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs">Eligible for Payout</Badge>
+                  ) : review.status === 'DOCUMENTS REQUIRED' ? (
+                    <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">Action Required</Badge>
+                  ) : (
+                    <Badge className="bg-red-100 text-red-800 border-red-300 text-xs">Policy Exclusion</Badge>
+                  )}
+                </div>
+              </div>
+
+              {review.rejection_reason && (
+                <div className="rounded-lg border border-red-200 bg-red-50/70 p-3 text-xs text-red-900 font-medium">
+                  Policy Exclusion Reason: {humanize(review.rejection_reason)}
+                </div>
+              )}
+
+              {review.required_documents && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900 font-medium">
+                  Member Request: {review.required_documents}
+                </div>
+              )}
+
+              <div className="rounded-xl border bg-gradient-to-r from-muted/40 to-muted/20 p-4 text-xs leading-relaxed text-muted-foreground">
+                <span className="font-semibold text-foreground block mb-1">Adjudication Agent Executive Brief:</span>
+                <Typewriter text={review.summary} delayMs={300} />
+              </div>
+            </div>
+
+            {/* Financial Totals Column */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-3 lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l lg:pl-6 pt-4 lg:pt-0">
+              <div className="rounded-lg border bg-emerald-50/50 border-emerald-200/80 p-3.5">
+                <div className="text-xs font-semibold uppercase tracking-wider text-emerald-800">Approved Payable</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 tracking-tight mt-0.5">
+                  {bdt(review.total_payable)}
+                </div>
+                <div className="text-[11px] text-emerald-700/80 mt-0.5">Net disburseable to member</div>
+              </div>
+
+              <div className="rounded-lg border bg-muted/40 p-3">
+                <div className="text-xs text-muted-foreground">Total Claimed</div>
+                <div className="text-lg font-bold text-foreground mt-0.5">{bdt(review.total_claimed)}</div>
+                <div className="text-[11px] text-muted-foreground">Gross invoice sum</div>
+              </div>
+
+              <div className="rounded-lg border bg-muted/40 p-3">
+                <div className="text-xs text-muted-foreground">Company Deductions Saved</div>
+                <div className={cn('text-lg font-bold mt-0.5', deductionsTotal > 0 ? 'text-red-600' : 'text-muted-foreground')}>
+                  {deductionsTotal > 0 ? `−${bdt(deductionsTotal)}` : '৳0'}
+                </div>
+                <div className="text-[11px] text-muted-foreground">Policy limits & exclusions</div>
+              </div>
+
+              <div className="rounded-lg border bg-muted/40 p-3">
+                <div className="text-xs text-muted-foreground">OPD Balance After Claim</div>
+                <div className="text-lg font-bold text-foreground mt-0.5">{bdt(review.limit_after)}</div>
+                <div className="text-[11px] text-muted-foreground">Member limit remaining</div>
+              </div>
+            </div>
           </div>
-          <dl className="grid min-w-56 content-start gap-3 md:border-l md:pl-6">
-            <div>
-              <dt className="text-sm text-muted-foreground">Payable</dt>
-              <dd className="text-3xl font-bold tracking-tight">{bdt(review.total_payable)}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted-foreground">Claimed</dt>
-              <dd className="text-lg font-semibold">{bdt(review.total_claimed)}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted-foreground">OPD limit left after this claim</dt>
-              <dd className="text-lg font-semibold">{bdt(review.limit_after)}</dd>
-            </div>
-          </dl>
-        </CardContent>
+        </div>
       </Card>
 
-      <div className="grid gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Processing</CardTitle>
-            <CardDescription>{AGENT.ADJUDICATION}: deductions and plan limits per expense</CardDescription>
+      {/* Side-by-Side Benchmark (when historic sample available) */}
+      {officerDecision &&
+        (sameClaim(officerDecision, review) ? (
+          <OfficerComparison officer={officerDecision} review={review} />
+        ) : (
+          <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
+            The officer's ACPS comparison is omitted because this custom intake has a different patient or amount from the sample archive.
+          </div>
+        ))}
+
+      {/* Adjudication Breakdown & 6-Point Audit Cards */}
+      <div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr]">
+        {/* Adjudication Table */}
+        <Card className="border-border/80 shadow-sm">
+          <CardHeader className="glil-card-header rounded-t-xl pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold tracking-tight">Adjudication Breakdown</CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  {AGENT.ADJUDICATION}: Itemized deduction calculations & plan limit caps
+                </CardDescription>
+              </div>
+              <Badge variant="outline" className="text-xs font-mono">ACPS Policy Schedule</Badge>
+            </div>
           </CardHeader>
-          <CardContent>
-            {/* same columns, in the same order, as the ACPS process page */}
+          <CardContent className="pt-4">
             <div className="overflow-hidden rounded-lg border">
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead rowSpan={2} className="pl-3">Expense type</TableHead>
+                    <TableHead rowSpan={2} className="pl-3 text-xs font-semibold">Expense Head</TableHead>
                     <LimitGroupHead />
-                    <TableHead rowSpan={2} className="text-right">Claimed</TableHead>
-                    <TableHead rowSpan={2} className="text-right">Deducted</TableHead>
-                    <TableHead rowSpan={2} className="text-right">Payable</TableHead>
-                    <TableHead rowSpan={2} className="pr-3 pl-4">Remarks</TableHead>
+                    <TableHead rowSpan={2} className="text-right text-xs font-semibold">Claimed</TableHead>
+                    <TableHead rowSpan={2} className="text-right text-xs font-semibold">Deducted</TableHead>
+                    <TableHead rowSpan={2} className="text-right text-xs font-semibold">Payable</TableHead>
+                    <TableHead rowSpan={2} className="pr-3 pl-4 text-xs font-semibold">Remarks</TableHead>
                   </TableRow>
                   <TableRow className="hover:bg-transparent">
                     <LimitHeads />
@@ -95,36 +165,36 @@ export function ProcessStep(props: Props) {
                 </TableHeader>
                 <TableBody className="stagger">
                   {review.expenses.map((e, i) => (
-                    <TableRow key={e.category} style={order(i)}>
-                      <TableCell className="pl-3 align-top font-medium">{humanize(e.category)}</TableCell>
+                    <TableRow key={e.category} style={order(i)} className="text-xs hover:bg-muted/20">
+                      <TableCell className="pl-3 align-top font-semibold">{humanize(e.category)}</TableCell>
                       <LimitCells info={e} />
                       <TableCell className="text-right align-top tabular-nums">{bdt(e.claimed)}</TableCell>
-                      <TableCell className={cn('text-right align-top tabular-nums', e.deducted ? 'text-red-600' : 'text-muted-foreground')}>
+                      <TableCell className={cn('text-right align-top tabular-nums font-medium', e.deducted ? 'text-red-600' : 'text-muted-foreground')}>
                         {e.deducted ? `−${bdt(e.deducted)}` : '—'}
                       </TableCell>
-                      <TableCell className="text-right align-top font-semibold tabular-nums">{bdt(e.payable)}</TableCell>
-                      <TableCell className="max-w-72 pr-3 pl-4 align-top text-xs whitespace-normal">
+                      <TableCell className="text-right align-top font-bold tabular-nums text-foreground">{bdt(e.payable)}</TableCell>
+                      <TableCell className="max-w-64 pr-3 pl-4 align-top text-[11px] whitespace-normal">
                         {e.remarks.length ? (
-                          <ul className="grid gap-1 text-amber-700">
+                          <ul className="grid gap-1 text-amber-800">
                             {e.remarks.map((r) => (
-                              <li key={r}>{r}</li>
+                              <li key={r}>• {r}</li>
                             ))}
                           </ul>
                         ) : (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground">Approved per bill</span>
                         )}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
                 <TableFooter className="bg-muted/50">
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell className="pl-3 font-medium" colSpan={4}>Total</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{bdt(review.total_claimed)}</TableCell>
-                    <TableCell className="text-right font-semibold text-red-600 tabular-nums">
-                      {review.total_claimed - review.total_payable ? `−${bdt(review.total_claimed - review.total_payable)}` : '—'}
+                  <TableRow className="hover:bg-transparent text-xs font-bold">
+                    <TableCell className="pl-3" colSpan={4}>Net Settlement</TableCell>
+                    <TableCell className="text-right tabular-nums">{bdt(review.total_claimed)}</TableCell>
+                    <TableCell className="text-right text-red-600 tabular-nums">
+                      {deductionsTotal > 0 ? `−${bdt(deductionsTotal)}` : '—'}
                     </TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{bdt(review.total_payable)}</TableCell>
+                    <TableCell className="text-right font-extrabold text-sm tabular-nums text-emerald-700">{bdt(review.total_payable)}</TableCell>
                     <TableCell />
                   </TableRow>
                 </TableFooter>
@@ -133,35 +203,51 @@ export function ProcessStep(props: Props) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Audit</CardTitle>
-            <CardDescription>{AGENT.AUDIT}: documents, dates, names and claim history</CardDescription>
-            <CardAction>
+        {/* 6-Point Compliance & Audit Checklist */}
+        <Card className="border-border/80 shadow-sm">
+          <CardHeader className="glil-card-header rounded-t-xl pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold tracking-tight">Compliance & Anti-Fraud Audit</CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
+                  {AGENT.AUDIT}: 6-Point Automated Validation Shield
+                </CardDescription>
+              </div>
               <Badge
                 variant="outline"
-                className={failed ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}
+                className={cn(
+                  'text-xs font-semibold gap-1',
+                  failed ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                )}
               >
-                {failed ? `${failed} issue${failed > 1 ? 's' : ''}` : 'All clear'}
+                {failed ? <AlertTriangle className="size-3" /> : <ShieldCheck className="size-3" />}
+                {failed ? `${failed} Issue${failed > 1 ? 's' : ''} Flagged` : 'All 6 Checks Passed'}
               </Badge>
-            </CardAction>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <ul className="stagger grid gap-3">
               {review.checks.map((c, i) => (
-                <li key={c.check} className="flex gap-2.5" style={order(i)}>
+                <li
+                  key={c.check}
+                  className={cn(
+                    'flex items-start gap-3 rounded-lg border p-3 transition-colors',
+                    c.passed ? 'bg-muted/20 border-border' : 'bg-red-50/40 border-red-200'
+                  )}
+                  style={order(i)}
+                >
                   <span
                     className={cn(
-                      'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border',
-                      c.passed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-600',
+                      'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-xs font-bold',
+                      c.passed ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700',
                     )}
                     aria-label={c.passed ? 'Passed' : 'Failed'}
                   >
-                    {c.passed ? <Check className="size-3" /> : <X className="size-3" />}
+                    {c.passed ? <Check className="size-3.5 stroke-[3]" /> : <X className="size-3.5 stroke-[3]" />}
                   </span>
-                  <div className="text-sm">
-                    <div className="font-medium">{c.check}</div>
-                    <div className="text-muted-foreground">{c.detail}</div>
+                  <div className="text-xs">
+                    <div className="font-semibold text-foreground">{c.check}</div>
+                    <div className="text-muted-foreground mt-0.5">{c.detail}</div>
                   </div>
                 </li>
               ))}
@@ -170,38 +256,54 @@ export function ProcessStep(props: Props) {
         </Card>
       </div>
 
-      {officerDecision &&
-        (sameClaim(officerDecision, review) ? (
-          <OfficerComparison officer={officerDecision} review={review} />
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            The officer's ACPS decision isn't shown: these documents have a different patient or amount from the
-            member's sample claim.
-          </p>
-        ))}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Post-audit</CardTitle>
-          <CardDescription>
-            Reviewed by {reviewedBy}.{' '}
-            {review.single_step_approval
-              ? `Payable is ${bdt(3000)} or less, so sign-off approves it in one step.`
-              : review.status === 'SETTLED'
-                ? 'After sign-off it goes to doctor approval.'
-                : ''}
-          </CardDescription>
+      {/* Post-Audit & Final Sign-Off Action */}
+      <Card className="border-border/80 shadow-sm">
+        <CardHeader className="glil-card-header rounded-t-xl pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-bold tracking-tight">Post-Audit Sign-Off & Core ERP Posting</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Verified by claims officer <span className="font-semibold text-foreground">{reviewedBy}</span>.{' '}
+                {review.single_step_approval
+                  ? `Payable amount (${bdt(review.total_payable)}) qualifies for single-step instant disbursement.`
+                  : review.status === 'SETTLED'
+                    ? 'Requires doctor review before final release.'
+                    : ''}
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="text-xs gap-1 border-indigo-200 bg-indigo-50 text-indigo-700">
+              <FileCheck className="size-3" /> Ready for Oracle Core
+            </Badge>
+          </div>
         </CardHeader>
-        <CardFooter className="justify-end gap-3">
-          {!canSignOff && (
-            <span className="mr-auto text-sm text-muted-foreground">Switch "Acting as" to the post-audit user to sign off.</span>
-          )}
-          <Button variant="outline" size="lg" onClick={onBack} disabled={busy}>
-            Send back to review
-          </Button>
-          <Button size="lg" disabled={!canSignOff || busy} onClick={onSignOff}>
-            {busy ? 'Posting to Oracle…' : 'Sign off and post to Oracle'}
-          </Button>
+
+        <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t bg-muted/20 px-6 py-4">
+          <div className="text-xs text-muted-foreground">
+            {!canSignOff ? (
+              <span className="text-amber-800 font-semibold">
+                ⚠️ To sign off, switch "Acting as" in the top bar to the Post-Audit user (Imran Chowdhury).
+              </span>
+            ) : (
+              <span className="text-emerald-700 font-semibold">
+                ✓ Authorized Post-Auditor: Ready to approve and write transaction to Oracle.
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Button variant="outline" size="lg" onClick={onBack} disabled={busy} className="gap-2">
+              <ArrowLeft className="size-4" /> Back to Review
+            </Button>
+            <Button
+              size="lg"
+              disabled={!canSignOff || busy}
+              onClick={onSignOff}
+              className="bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
+            >
+              <Send className="size-4" />
+              {busy ? 'Posting to Oracle E-Business Suite…' : 'Sign Off & Commit to Oracle'}
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </div>
