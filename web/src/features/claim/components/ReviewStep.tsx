@@ -1,17 +1,18 @@
-import { Plus, Sparkles, X } from 'lucide-react'
+import { Info, Plus, Sparkles, X } from 'lucide-react'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { Typewriter } from '@/shared/components/Typewriter'
-import { CLAIM_TYPES, DATE_PATTERN, EXPENSE_CODES, PHYSICIAN_TYPES, TREATMENT_TYPES } from '@/shared/constants'
+import { AGENT, CLAIM_TYPES, DATE_PATTERN, EXPENSE_CODES, PHYSICIAN_TYPES, TREATMENT_TYPES } from '@/shared/constants'
 import { bdt, humanize } from '@/shared/format'
 import { expenseTotal, type ClaimForm, type FormField } from '../form'
 import type { Confidence, Extraction, Member } from '../types'
@@ -42,8 +43,9 @@ const CONFIDENCE_CLASS: Record<string, string> = {
   low: 'border-amber-200 bg-amber-50 text-amber-700',
 }
 
+// high confidence is the norm, so only flag what needs a second look
 function ConfidenceBadge({ level }: { level: Confidence | undefined }) {
-  if (!level) return null
+  if (!level || level === 'high') return null
   return (
     <Badge variant="outline" className={cn('h-4 px-1.5 text-[10px] font-medium', CONFIDENCE_CLASS[level])}>
       {level}
@@ -125,11 +127,11 @@ export function ReviewStep(props: Props) {
         <CardHeader>
           <CardTitle className="text-xl">Edit an intimated group health claim</CardTitle>
           <CardDescription>
-            Intimation {intimationNumber}. Check what Agent 1 read against the document, then send it on.
+            Intimation {intimationNumber}. Check what the intake agent read against the document, then send it on.
           </CardDescription>
           <CardAction>
             <Badge variant="outline" className="gap-1">
-              <Sparkles className="size-3 text-[var(--ai-a)]" /> Filled by Agent 1
+              <Sparkles className="size-3 text-[var(--ai-a)]" /> Filled by the {AGENT.INTAKE.toLowerCase()}
             </Badge>
           </CardAction>
         </CardHeader>
@@ -174,70 +176,90 @@ export function ReviewStep(props: Props) {
 
           <Separator />
 
-          <section className="grid gap-2">
-            <h3 className="text-sm font-semibold">Expenses</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Expense</TableHead>
-                  <TableHead className="text-right">Claimed</TableHead>
-                  <TableHead className="w-24" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {form.expenses.map((row, i) => (
-                  <TableRow key={i}>
-                    <TableCell>
-                      <Select value={row.category} onValueChange={(v) => setExpense(i, { category: v })}>
-                        <SelectTrigger className={cn('w-full', row.confidence && 'ai-filled')}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[...new Set([row.category, ...codes])].map((c) => (
-                            <SelectItem key={c} value={c}>{humanize(c)}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        value={row.claimed}
-                        className={cn('ml-auto max-w-36 text-right', row.confidence && 'ai-filled')}
-                        onChange={(e) => setExpense(i, { claimed: e.target.value })}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <ConfidenceBadge level={row.confidence} />
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Remove expense"
-                        onClick={() => onChange({ ...form, expenses: form.expenses.filter((_, j) => j !== i) })}
-                      >
-                        <X />
-                      </Button>
-                    </TableCell>
+          <section className="grid gap-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Expenses</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  onChange({ ...form, expenses: [...form.expenses, { category: codes[0], claimed: '', confidence: null }] })
+                }
+              >
+                <Plus /> Add expense
+              </Button>
+            </div>
+            <div className="overflow-hidden rounded-lg border">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="pl-3">Expense type</TableHead>
+                    <TableHead className="w-40 text-right">Claimed</TableHead>
+                    <TableHead className="w-12" />
                   </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        onChange({ ...form, expenses: [...form.expenses, { category: codes[0], claimed: '', confidence: null }] })
-                      }
-                    >
-                      <Plus /> Add expense
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">{bdt(total)}</TableCell>
-                  <TableCell />
-                </TableRow>
-              </TableFooter>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {form.expenses.map((row, i) => (
+                    <TableRow key={i} className="hover:bg-transparent">
+                      <TableCell className="pl-3">
+                        <div className="flex items-center gap-2">
+                          <Select value={row.category} onValueChange={(v) => setExpense(i, { category: v })}>
+                            <SelectTrigger className={cn('w-full max-w-64', row.confidence && 'ai-filled')}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[...new Set([row.category, ...codes])].map((c) => (
+                                <SelectItem key={c} value={c}>{humanize(c)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <ConfidenceBadge level={row.confidence} />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <InputGroup className={cn('ml-auto w-36', row.confidence && 'ai-filled')}>
+                          <InputGroupAddon>
+                            <InputGroupText>৳</InputGroupText>
+                          </InputGroupAddon>
+                          <InputGroupInput
+                            inputMode="decimal"
+                            aria-label={`${humanize(row.category)} claimed`}
+                            value={row.claimed}
+                            className="text-right tabular-nums"
+                            onChange={(e) => setExpense(i, { claimed: e.target.value })}
+                          />
+                        </InputGroup>
+                      </TableCell>
+                      <TableCell className="pr-2 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Remove ${humanize(row.category)}`}
+                          className="text-muted-foreground"
+                          onClick={() => onChange({ ...form, expenses: form.expenses.filter((_, j) => j !== i) })}
+                        >
+                          <X />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {form.expenses.length === 0 && (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={3} className="py-6 text-center text-muted-foreground">
+                        No expenses yet. Add one to continue.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+                <TableFooter className="bg-muted/50">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell className="pl-3 font-medium">Total</TableCell>
+                    <TableCell className="pr-3 text-right font-semibold tabular-nums">{bdt(total)}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
           </section>
 
           {total !== claimed && (
@@ -253,7 +275,21 @@ export function ReviewStep(props: Props) {
             </Alert>
           )}
           {extraction.extraction_notes && (
-            <p className="text-xs text-muted-foreground">Agent 1 notes: {extraction.extraction_notes}</p>
+            <Alert>
+              <Info />
+              <AlertTitle>Notes from the {AGENT.INTAKE.toLowerCase()}</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc space-y-1 pl-4">
+                  {extraction.extraction_notes
+                    .split(';')
+                    .map((note) => note.trim())
+                    .filter(Boolean)
+                    .map((note) => (
+                      <li key={note}>{note}</li>
+                    ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
           )}
         </CardContent>
 

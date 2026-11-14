@@ -21,9 +21,16 @@ export type Step = (typeof STEP)[keyof typeof STEP]
 export const STEP_LABEL: Record<Step, string> = {
   0: 'Intimation',
   1: 'Human review',
-  2: 'Processing & audit',
+  2: 'Adjudication & audit',
   3: 'Oracle',
 }
+
+// the three AI agents, named for the claims job each one does
+export const AGENT = {
+  INTAKE: 'Intake agent',
+  ADJUDICATION: 'Adjudication agent',
+  AUDIT: 'Audit agent',
+} as const
 
 // what each agent is doing, shown while it runs
 export const EXTRACT_STEPS = [
@@ -34,11 +41,11 @@ export const EXTRACT_STEPS = [
   'Reconciling totals with the claimed amount',
 ]
 export const REVIEW_STEPS = [
-  'Agent 2 · checking each line against receipts',
-  'Agent 2 · checking medicines against the prescription',
-  'Agent 2 · applying plan limits',
-  'Agent 3 · auditing dates, names and duplicates',
-  'Agent 3 · checking coverage exclusions',
+  'Adjudication: checking each line against receipts',
+  'Adjudication: checking medicines against the prescription',
+  'Adjudication: applying plan limits',
+  'Audit: checking dates, names and claim history',
+  'Audit: checking coverage exclusions',
   'Writing the recommendation',
 ]
 

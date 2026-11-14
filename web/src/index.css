@@ -139,9 +139,10 @@
   .ai-text { background: var(--ai); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
   /* a value the AI filled and nobody has edited yet */
-  .ai-filled {
+  .ai-filled { background-color: color-mix(in oklch, var(--ai-a) 5%, var(--background)) !important; }
+  .ai-card {
     border-color: transparent !important;
-    background: linear-gradient(var(--background), var(--background)) padding-box, var(--ai) border-box !important;
+    background: linear-gradient(var(--card), var(--card)) padding-box, var(--ai) border-box !important;
   }
   .ai-edge { position: relative; overflow: hidden; }
   .ai-edge::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--ai); }

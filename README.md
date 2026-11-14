@@ -3,13 +3,12 @@
 Demo of the ACPS claims flow with AI agents, for OPD group health claims up to 5,000 BDT. It runs on real ACPS_T claims, but it has no database connection: the data is exported once to a local file, and the demo's changes live in memory and reset when the server restarts.
 
 ```
-Intimation ─► Agent 1 extract ─► Human review ─► Agents 2+3 review ─► Post-audit ─► "Oracle"
-             (ocr-extract)      (Claims Officer)   (1 Gemini call       (Post-audit
-                                                    + code rules)        user)
+Intimation ─► Intake agent ─► Human review ─► Adjudication + Audit agents ─► Post-audit ─► "Oracle"
+              (ocr-extract)   (Claims Officer)   (1 Gemini call + code rules)    (Post-audit user)
 ```
 
-- **Agent 1** is the real `ocr-extract` service, called over HTTP.
-- **Agents 2 and 3** share one Gemini call that judges the documents: deductions, audit checks and a suggested status. Code then applies the member's plan limits, submission window, cycle dates, member status, name match and duplicates (`server/app/rules.py`).
+- **Intake agent** (agent 1 in the flow) is the real `ocr-extract` service, called over HTTP.
+- **Adjudication and audit agents** (agents 2 and 3) share one Gemini call that judges the documents: deductions, audit checks and a suggested status. Code then applies the member's plan limits, submission window, cycle dates, member status, name match and duplicates (`server/app/rules.py`).
 - **The officer's actual decision** from ACPS is shown beside the AI's when the uploaded documents are a claim ACPS already processed.
 
 ## Data
@@ -65,7 +64,7 @@ Deductions use a fixed remark list cleaned from ACPS `x_expense_remarks`. A bill
 
 ## Demo script
 
-1. **Intimation:** search for the member, upload their claim documents and press "Intimate claim". This creates the claim and its intimation number, and Agent 1 reads the documents.
+1. **Intimation:** search for the member, upload their claim documents and press "Intimate claim". This creates the claim and its intimation number, and the intake agent reads the documents.
 2. **Review:** acting as a Claims Officer, check the pre-filled form against the document and confirm.
 3. **Processing and audit:** read the AI's decision. If ACPS also processed this claim by hand (same member, same patient and amount), the officer's real decision is shown beside it.
 4. **Post-audit:** switch "Acting as" to the Post-audit user and sign off.

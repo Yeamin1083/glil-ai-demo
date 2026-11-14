@@ -12,7 +12,7 @@ import { ReviewStep } from './features/claim/components/ReviewStep'
 import { fromExtraction, toClaimIn, type ClaimForm, type FormField } from './features/claim/form'
 import type { Confidence, Extraction, Fixtures, OracleRecord, Review } from './features/claim/types'
 import { ScanOverlay } from './shared/components/ScanOverlay'
-import { EXTRACT_STEPS, REVIEW_STEPS, ROLE, ROLE_LABEL, STEP, STEP_LABEL, type Step } from './shared/constants'
+import { AGENT, EXTRACT_STEPS, REVIEW_STEPS, ROLE, ROLE_LABEL, STEP, STEP_LABEL, type Step } from './shared/constants'
 import { bdt } from './shared/format'
 
 const MIN_SCAN_MS = 4000
@@ -177,7 +177,7 @@ export default function App() {
         ) : scanning ? (
           <ScanOverlay
             file={scanning.file}
-            title={scanning.agent === 'extract' ? 'Agent 1 is reading the claim' : 'Agents 2 and 3 are reviewing'}
+            title={scanning.agent === 'extract' ? `${AGENT.INTAKE} is reading the claim` : 'Adjudication and audit agents are reviewing'}
             steps={scanning.agent === 'extract' ? EXTRACT_STEPS : REVIEW_STEPS}
           />
         ) : step === STEP.INTIMATION ? (

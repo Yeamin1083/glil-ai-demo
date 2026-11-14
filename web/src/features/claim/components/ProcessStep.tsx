@@ -6,7 +6,7 @@ import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader,
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { Typewriter } from '@/shared/components/Typewriter'
-import { AMOUNT_TOLERANCE_BDT, NAME_CHECK, STATUS_LABEL, STATUS_TONE, TONE_TEXT } from '@/shared/constants'
+import { AGENT, AMOUNT_TOLERANCE_BDT, NAME_CHECK, STATUS_LABEL, STATUS_TONE, TONE_TEXT } from '@/shared/constants'
 import { bdt, humanize } from '@/shared/format'
 import type { OfficerDecision, Review } from '../types'
 import { OfficerComparison } from './OfficerComparison'
@@ -73,7 +73,7 @@ export function ProcessStep(props: Props) {
         <Card>
           <CardHeader>
             <CardTitle>Processing</CardTitle>
-            <CardDescription>Agent 2: deductions and plan limits per expense</CardDescription>
+            <CardDescription>{AGENT.ADJUDICATION}: deductions and plan limits per expense</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -109,7 +109,7 @@ export function ProcessStep(props: Props) {
         <Card>
           <CardHeader>
             <CardTitle>Audit</CardTitle>
-            <CardDescription>Agent 3: documents, dates, names and history</CardDescription>
+            <CardDescription>{AGENT.AUDIT}: documents, dates, names and claim history</CardDescription>
             <CardAction>
               <Badge
                 variant="outline"

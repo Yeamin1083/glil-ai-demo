@@ -37,7 +37,7 @@ export interface Plan {
   item_count_limits: Record<string, number>
 }
 
-// intimation creates the claim: a new number, plus what Agent 1 read
+// intimation creates the claim: a new number, plus what the intake agent read
 export interface Intimation {
   intimation_number: string
   extraction: Extraction

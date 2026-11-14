@@ -37,7 +37,7 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
               Payable {bdt(officer.payable_amount)} of {bdt(officer.claimed_amount)}
             </p>
           </div>
-          <div className="ai-filled rounded-lg border p-4">
+          <div className="ai-card rounded-lg border p-4">
             <p className="text-xs text-muted-foreground">AI</p>
             <p className={cn('text-lg font-semibold', TONE_TEXT[STATUS_TONE[review.status]])}>{humanize(review.status)}</p>
             {review.rejection_reason && <p className="text-sm font-medium">{humanize(review.rejection_reason)}</p>}

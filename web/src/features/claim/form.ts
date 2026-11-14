@@ -53,7 +53,9 @@ export function fromExtraction(ex: Extraction, memberCode: string, referenceDate
     diagnosis: text(ex.diagnosis),
     treatment_type: text(ex.treatment_type) || 'CONSERVATIVE',
     bill_discount: text(ex.bill_discount),
-    expenses: Object.entries(ex.expense_breakdown ?? {}).map(([category, amount]) => ({
+    expenses: Object.entries(ex.expense_breakdown ?? {})
+      .filter(([, amount]) => Number(amount.value) > 0)
+      .map(([category, amount]) => ({
       category,
       claimed: text(amount),
       confidence: amount.confidence,

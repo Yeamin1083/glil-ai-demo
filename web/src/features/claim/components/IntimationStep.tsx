@@ -24,7 +24,7 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
       <CardHeader>
         <CardTitle className="text-xl">Intimate a claim</CardTitle>
         <CardDescription>
-          Pick the member and upload their claim documents. Agent 1 reads them and fills in the claim for you to check.
+          Pick the member and upload their claim documents. The intake agent reads them and fills in the claim for you to check.
         </CardDescription>
       </CardHeader>
 
