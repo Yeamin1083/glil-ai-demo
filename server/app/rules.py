@@ -171,6 +171,12 @@ def review(claim: ClaimIn, model: ModelReview) -> Review:
         status, reason = "REGRETTED", fx.REASON_NO_LIMIT
     if status != "REGRETTED":
         reason = None
+    else:
+        # nothing is paid on a regretted claim, so every line shows it, matching the total
+        regret_remark = f"Claim regretted: {reason.capitalize()}"
+        for e in expenses:
+            e.payable, e.deducted, e.remarks = 0, e.claimed, [*e.remarks, regret_remark]
+        total_payable = 0
 
     # ACPS refuses DOCUMENTS REQUIRED without this text
     required_documents = None
@@ -188,7 +194,7 @@ def review(claim: ClaimIn, model: ModelReview) -> Review:
         required_documents=required_documents or None,
         summary=model.summary,
         total_claimed=sum(e.claimed for e in expenses),
-        total_payable=total_payable if status != "REGRETTED" else 0,
+        total_payable=total_payable,
         limit_before=limit_before,
         limit_after=remaining if status != "REGRETTED" else limit_before,
         single_step_approval=status == "SETTLED"

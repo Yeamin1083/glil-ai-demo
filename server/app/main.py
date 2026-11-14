@@ -27,6 +27,8 @@ def fixtures():
             "is_active": m["is_active"],
             "plan": m["plan"],
             "limit_remaining": max(m["plan"]["opd_limit"] - m["consumed"], 0),
+            # what each expense type has used this cycle, for the review screen's limit columns
+            "items": m["items"],
         }
         for code, m in fx.MEMBERS.items()
     ]

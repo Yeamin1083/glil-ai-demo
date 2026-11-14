@@ -50,6 +50,8 @@ export interface Member {
   is_active: boolean
   plan: Plan
   limit_remaining: number
+  // used this cycle per expense type
+  items: Record<string, { amount: number; count: number }>
 }
 
 export interface OfficerDecision {

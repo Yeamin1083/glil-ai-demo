@@ -92,6 +92,10 @@ def test_late_submission_overrides_model():
     )
     assert (result.status, result.rejection_reason) == ("REGRETTED", fx.REASON_LATE)
     assert result.total_payable == 0
+    # lines agree with the total: nothing paid, the reason on each line
+    line = result.expenses[0]
+    assert (line.payable, line.deducted) == (0, 500)
+    assert line.remarks[-1] == "Claim regretted: Late submission"
 
 
 def test_resubmitted_claim_is_duplicate_and_limits_move():

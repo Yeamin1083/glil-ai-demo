@@ -15,6 +15,7 @@ import { Typewriter } from '@/shared/components/Typewriter'
 import { AGENT, CLAIM_TYPES, DATE_PATTERN, EXPENSE_CODES, PHYSICIAN_TYPES, TREATMENT_TYPES } from '@/shared/constants'
 import { bdt, humanize } from '@/shared/format'
 import { expenseTotal, type ClaimForm, type FormField } from '../form'
+import { LimitCells, LimitGroupHead, LimitHeads, limitBefore } from './PlanLimit'
 import type { Confidence, Extraction, Member } from '../types'
 
 interface Props {
@@ -192,16 +193,20 @@ export function ReviewStep(props: Props) {
             <div className="overflow-hidden rounded-lg border">
               <Table>
                 <TableHeader className="bg-muted/50">
-                  <TableRow>
-                    <TableHead className="pl-3">Expense type</TableHead>
-                    <TableHead className="w-40 text-right">Claimed</TableHead>
-                    <TableHead className="w-12" />
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead rowSpan={2} className="pl-3">Expense type</TableHead>
+                    <LimitGroupHead />
+                    <TableHead rowSpan={2} className="w-40 text-right">Claimed</TableHead>
+                    <TableHead rowSpan={2} className="w-12" />
+                  </TableRow>
+                  <TableRow className="hover:bg-transparent">
+                    <LimitHeads />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {form.expenses.map((row, i) => (
                     <TableRow key={i} className="hover:bg-transparent">
-                      <TableCell className="pl-3">
+                      <TableCell className="pl-3 align-top">
                         <div className="flex items-center gap-2">
                           <Select value={row.category} onValueChange={(v) => setExpense(i, { category: v })}>
                             <SelectTrigger className={cn('w-full max-w-64', row.confidence && 'ai-filled')}>
@@ -216,7 +221,8 @@ export function ReviewStep(props: Props) {
                           <ConfidenceBadge level={row.confidence} />
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <LimitCells info={limitBefore(member, row.category)} />
+                      <TableCell className="align-top">
                         <InputGroup className={cn('ml-auto w-36', row.confidence && 'ai-filled')}>
                           <InputGroupAddon>
                             <InputGroupText>৳</InputGroupText>
@@ -230,7 +236,7 @@ export function ReviewStep(props: Props) {
                           />
                         </InputGroup>
                       </TableCell>
-                      <TableCell className="pr-2 text-right">
+                      <TableCell className="pr-2 text-right align-top">
                         <Button
                           variant="ghost"
                           size="icon-sm"
@@ -245,7 +251,7 @@ export function ReviewStep(props: Props) {
                   ))}
                   {form.expenses.length === 0 && (
                     <TableRow className="hover:bg-transparent">
-                      <TableCell colSpan={3} className="py-6 text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
                         No expenses yet. Add one to continue.
                       </TableCell>
                     </TableRow>
@@ -253,7 +259,7 @@ export function ReviewStep(props: Props) {
                 </TableBody>
                 <TableFooter className="bg-muted/50">
                   <TableRow className="hover:bg-transparent">
-                    <TableCell className="pl-3 font-medium">Total</TableCell>
+                    <TableCell className="pl-3 font-medium" colSpan={4}>Total</TableCell>
                     <TableCell className="pr-3 text-right font-semibold tabular-nums">{bdt(total)}</TableCell>
                     <TableCell />
                   </TableRow>
