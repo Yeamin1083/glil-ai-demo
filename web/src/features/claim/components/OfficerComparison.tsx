@@ -11,26 +11,26 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
     <section className="card">
       <div className="row-between">
         <div>
-          <span className="eyebrow">Ground truth</span>
-          <h3>Officer's decision in ACPS</h3>
+          <span className="eyebrow">What actually happened</span>
+          <h3>The officer's decision in ACPS</h3>
         </div>
         <span className={`pill ${sameStatus && payableGap === 0 ? 'pill-good' : 'pill-warn'}`}>
-          {sameStatus ? (payableGap === 0 ? 'AI matches officer' : 'Same status, payable differs') : 'AI differs from officer'}
+          {sameStatus ? (payableGap === 0 ? 'AI matches the officer' : 'Same decision, different payable') : 'AI decided differently'}
         </span>
       </div>
 
       <div className="compare">
         <div>
           <span className="muted small">Officer</span>
-          <p className={`compare-status tone-text-${STATUS_TONE[officer.status]}`}>{officer.status}</p>
-          {officer.rejection_reason && <p className="reason">{officer.rejection_reason}</p>}
+          <p className={`compare-status tone-text-${STATUS_TONE[officer.status]}`}>{humanize(officer.status)}</p>
+          {officer.rejection_reason && <p className="reason">{humanize(officer.rejection_reason)}</p>}
           {officer.required_documents && <p className="small">Asked for: {officer.required_documents}</p>}
           <p className="small">Payable {bdt(officer.payable_amount)} of {bdt(officer.claimed_amount)}</p>
         </div>
-        <div>
+        <div className="ai-side">
           <span className="muted small">AI</span>
-          <p className={`compare-status tone-text-${STATUS_TONE[review.status]}`}>{review.status}</p>
-          {review.rejection_reason && <p className="reason">{review.rejection_reason}</p>}
+          <p className={`compare-status tone-text-${STATUS_TONE[review.status]}`}>{humanize(review.status)}</p>
+          {review.rejection_reason && <p className="reason">{humanize(review.rejection_reason)}</p>}
           {review.required_documents && <p className="small">Asks for: {review.required_documents}</p>}
           <p className="small">Payable {bdt(review.total_payable)} of {bdt(review.total_claimed)}</p>
         </div>

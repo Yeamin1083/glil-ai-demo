@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import {
   CLAIM_TYPES,
   DATE_PATTERN,
@@ -6,6 +6,7 @@ import {
   PHYSICIAN_TYPES,
   TREATMENT_TYPES,
 } from '../../../shared/constants'
+import { Typewriter } from '../../../shared/components/Typewriter'
 import { bdt, humanize } from '../../../shared/format'
 import { expenseTotal, type ClaimForm, type FormField } from '../form'
 import type { Confidence, Extraction, Member } from '../types'
@@ -22,6 +23,13 @@ interface Props {
   onSubmit: () => void
 }
 
+// screen order of the fields, so they light up top to bottom as the extraction lands
+const FIELD_ORDER: FormField[] = [
+  'patient_name', 'claim_type', 'treatment_date', 'reference_date', 'dispatch_number', 'dispatch_date',
+  'claimed_amount', 'bill_discount', 'hospital_name', 'physician_name', 'physician_type', 'diagnosis',
+  'treatment_type',
+]
+
 function ConfidenceDot({ level }: { level: Confidence | undefined }) {
   if (!level) return null
   return <span className={`conf conf-${level}`} title={`AI confidence: ${level}`}>{level}</span>
@@ -32,8 +40,13 @@ export function ReviewStep(props: Props) {
   const previewUrl = useMemo(() => URL.createObjectURL(file), [file])
   useEffect(() => () => URL.revokeObjectURL(previewUrl), [previewUrl])
   const [showDoc, setShowDoc] = useState(true)
+  // fields an officer has edited lose the AI marking
+  const [touched, setTouched] = useState<Set<FormField>>(() => new Set())
 
-  const set = (field: FormField, value: string) => onChange({ ...form, [field]: value })
+  const set = (field: FormField, value: string) => {
+    setTouched((t) => new Set(t).add(field))
+    onChange({ ...form, [field]: value })
+  }
   const setExpense = (i: number, patch: Partial<ClaimForm['expenses'][number]>) =>
     onChange({
       ...form,
@@ -47,8 +60,11 @@ export function ReviewStep(props: Props) {
   )
   const codes = EXPENSE_CODES[form.claim_type] ?? EXPENSE_CODES.GENERAL
 
-  const input = (field: FormField, label: string, opts: { options?: string[]; hint?: string } = {}) => (
-    <label className={`field${confidence[field] === 'low' ? ' low' : ''}`}>
+  const input = (field: FormField, label: string, opts: { options?: string[]; hint?: string } = {}) => {
+    const fromAi = !touched.has(field) && field !== 'reference_date' && form[field] !== ''
+    const classes = ['field', 'reveal-fill', fromAi && 'ai-filled', confidence[field] === 'low' && 'low']
+    return (
+    <label className={classes.filter(Boolean).join(' ')} style={{ '--i': FIELD_ORDER.indexOf(field) } as CSSProperties}>
       <span>
         {label} <ConfidenceDot level={confidence[field]} />
       </span>
@@ -63,7 +79,8 @@ export function ReviewStep(props: Props) {
         <input value={form[field]} placeholder={opts.hint} onChange={(e) => set(field, e.target.value)} />
       )}
     </label>
-  )
+    )
+  }
 
   return (
     <div className={`review${showDoc ? '' : ' no-doc'}`}>
@@ -86,13 +103,20 @@ export function ReviewStep(props: Props) {
           <h2>Edit an intimated group health claim</h2>
           {!showDoc && <button className="ghost" onClick={() => setShowDoc(true)}>Show document</button>}
         </div>
-        {extraction.summary && <p className="ai-note">🤖 {extraction.summary}</p>}
+        {extraction.summary && (
+          <p className="ai-note ai-voice">
+            <Typewriter text={extraction.summary} />
+          </p>
+        )}
+        <p className="muted small">
+          Values with a coloured edge were filled in by Agent 1. Check them against the document; they turn plain once you edit them.
+        </p>
 
         <h3>Claim</h3>
         <div className="grid">
           <label className="field">
             <span>Member code</span>
-            <input value={`${member.code} · ${member.relation}`} disabled />
+            <input value={`${member.code} (${member.relation.toLowerCase()})`} disabled />
           </label>
           {input('patient_name', 'Patient name')}
           {input('claim_type', 'Claim type', { options: CLAIM_TYPES })}
@@ -134,7 +158,7 @@ export function ReviewStep(props: Props) {
                 </td>
                 <td className="num">
                   <input
-                    className="num"
+                    className={row.confidence ? 'num ai-filled' : 'num'}
                     value={row.claimed}
                     onChange={(e) => setExpense(i, { claimed: e.target.value })}
                   />

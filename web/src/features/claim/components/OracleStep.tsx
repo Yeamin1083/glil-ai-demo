@@ -3,7 +3,7 @@ import type { OracleRecord } from '../types'
 export function OracleStep({ record, onNext }: { record: OracleRecord; onNext: () => void }) {
   return (
     <section className="card narrow">
-      <span className="eyebrow">System of record</span>
+      <span className="eyebrow">Oracle, system of record</span>
       <h2>Posted {String(record.intimation_number)}</h2>
       <p className="muted">
         What would be written to Oracle. Settled amounts now count against the member's limits, and

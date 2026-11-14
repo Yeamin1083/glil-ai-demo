@@ -6,7 +6,8 @@ import { ProcessStep } from './features/claim/components/ProcessStep'
 import { ReviewStep } from './features/claim/components/ReviewStep'
 import { fromExtraction, toClaimIn, type ClaimForm, type FormField } from './features/claim/form'
 import type { Confidence, Extraction, Fixtures, OracleRecord, Review, Sample } from './features/claim/types'
-import { ROLE, ROLE_LABEL, STEP, STEP_LABEL, type Step } from './shared/constants'
+import { ScanOverlay } from './shared/components/ScanOverlay'
+import { EXTRACT_STEPS, REVIEW_STEPS, ROLE, ROLE_LABEL, STEP, STEP_LABEL, type Step } from './shared/constants'
 import { bdt } from './shared/format'
 
 export default function App() {
@@ -14,6 +15,8 @@ export default function App() {
   const [officerId, setOfficerId] = useState('')
   const [step, setStep] = useState<Step>(STEP.INTIMATION)
   const [busy, setBusy] = useState(false)
+  // the document an agent is reading right now, shown under the scanner
+  const [scanning, setScanning] = useState<{ file: File; agent: 'extract' | 'review' } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const [file, setFile] = useState<File | null>(null)
@@ -43,11 +46,13 @@ export default function App() {
       setError((e as Error).message)
     } finally {
       setBusy(false)
+      setScanning(null)
     }
   }
 
   const intimate = (doc: File, memberCode: string, chosen: Sample | null) =>
     run(async () => {
+      setScanning({ file: doc, agent: 'extract' })
       const result = await extractClaim(doc)
       const prefilled = fromExtraction(result, memberCode, chosen?.reference_date)
       setFile(doc)
@@ -60,6 +65,7 @@ export default function App() {
 
   const sendToProcessing = () =>
     run(async () => {
+      setScanning({ file: file!, agent: 'review' })
       setReview(await reviewClaim(file!, toClaimIn(form!)))
       setReviewedBy(officer!.name)
       setStep(STEP.PROCESS)
@@ -86,38 +92,43 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="logo">G</span>
+          <img className="logo" src="/guardian-logo-white.svg" alt="Guardian Life Insurance" />
           <div>
             <strong>Claims AI</strong>
-            <span className="muted small">
-              Group health · OPD pilot ≤ {bdt(5000)}
-              {fixtures && ` · data: ${fixtures.source}`}
+            <span className="sub">
+              Group health OPD pilot, claims up to {bdt(5000)}
+              {fixtures?.source === 'ACPS_T' && ', running on ACPS_T data'}
             </span>
           </div>
         </div>
+
+        <ol className="stepper" aria-label="Claim progress">
+          {Object.entries(STEP_LABEL).map(([key, label]) => {
+            const n = Number(key)
+            return (
+              <li
+                key={key}
+                className={n === step ? 'current' : n < step ? 'done' : ''}
+                aria-current={n === step ? 'step' : undefined}
+              >
+                <span className="dot">{n < step ? '✓' : n + 1}</span>
+                {label}
+              </li>
+            )
+          })}
+        </ol>
+
         <label className="acting-as">
-          <span className="muted small">Acting as</span>
+          <span>Acting as</span>
           <select value={officer?.id ?? ''} onChange={(e) => setOfficerId(e.target.value)}>
             {users.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.name} · {ROLE_LABEL[u.role]}
+                {u.name} ({ROLE_LABEL[u.role]})
               </option>
             ))}
           </select>
         </label>
       </header>
-
-      <ol className="stepper">
-        {Object.entries(STEP_LABEL).map(([key, label]) => {
-          const n = Number(key)
-          return (
-            <li key={key} className={n === step ? 'current' : n < step ? 'done' : ''}>
-              <span className="dot">{n < step ? '✓' : n + 1}</span>
-              {label}
-            </li>
-          )
-        })}
-      </ol>
 
       <main>
         {error && (
@@ -128,7 +139,13 @@ export default function App() {
         )}
 
         {!fixtures ? (
-          <p className="muted">Loading demo data…</p>
+          <p className="muted">Loading claims…</p>
+        ) : scanning ? (
+          <ScanOverlay
+            file={scanning.file}
+            title={scanning.agent === 'extract' ? 'Agent 1 is reading the claim' : 'Agents 2 and 3 are reviewing'}
+            steps={scanning.agent === 'extract' ? EXTRACT_STEPS : REVIEW_STEPS}
+          />
         ) : step === STEP.INTIMATION ? (
           <IntimationStep
             members={fixtures.members}

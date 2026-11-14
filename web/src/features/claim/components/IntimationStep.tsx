@@ -33,7 +33,7 @@ export function IntimationStep({ members, samples, busy, onSubmit }: Props) {
           <select value={sampleNo} onChange={(e) => setSampleNo(e.target.value)}>
             {samples.map((s) => (
               <option key={s.intimation_number} value={s.intimation_number}>
-                {s.intimation_number} · submitted {s.reference_date}
+                {s.intimation_number}, submitted {s.reference_date}
               </option>
             ))}
           </select>
@@ -44,7 +44,7 @@ export function IntimationStep({ members, samples, busy, onSubmit }: Props) {
           <select value={memberCode} onChange={(e) => setMemberCode(e.target.value)}>
             {members.map((m) => (
               <option key={m.code} value={m.code}>
-                {m.name} · {m.relation} · {m.code}
+                {m.name} ({m.relation.toLowerCase()}), {m.code}
               </option>
             ))}
           </select>
@@ -54,9 +54,9 @@ export function IntimationStep({ members, samples, busy, onSubmit }: Props) {
       {member && (
         <dl className="member-card">
           <div><dt>Member</dt><dd>{member.name}</dd></div>
-          <div><dt>Member code</dt><dd>{member.code} · {member.relation}</dd></div>
+          <div><dt>Member code</dt><dd>{member.code} ({member.relation.toLowerCase()})</dd></div>
           <div><dt>Status</dt><dd className={member.is_active ? '' : 'bad'}>{member.is_active ? 'Active' : 'Inactive'}</dd></div>
-          <div><dt>Plan</dt><dd>{member.plan.plan_name} · OPD {member.plan.claim_type} {bdt(member.plan.opd_limit)}</dd></div>
+          <div><dt>Plan</dt><dd>Plan {member.plan.plan_name}, OPD {member.plan.claim_type.toLowerCase()} {bdt(member.plan.opd_limit)}</dd></div>
           <div><dt>Cycle</dt><dd>{member.plan.cycle_start} to {member.plan.cycle_end}</dd></div>
           <div><dt>OPD limit left</dt><dd>{bdt(member.limit_remaining)}</dd></div>
         </dl>
@@ -70,7 +70,7 @@ export function IntimationStep({ members, samples, busy, onSubmit }: Props) {
         />
         <strong>{file ? file.name : 'Choose claim documents'}</strong>
         <span className="muted">
-          {file ? `${(file.size / 1024).toFixed(0)} KB` : 'PDF, JPEG, PNG or WebP · printed documents only'}
+          {file ? `${(file.size / 1024).toFixed(0)} KB` : 'PDF or image of printed documents'}
         </span>
       </label>
 
@@ -80,7 +80,7 @@ export function IntimationStep({ members, samples, busy, onSubmit }: Props) {
           disabled={!file || !code || busy}
           onClick={() => file && onSubmit(file, code, sample)}
         >
-          {busy ? 'Agent 1 is reading the documents…' : 'Intimate & extract'}
+          {busy ? 'Reading…' : 'Intimate and read documents'}
         </button>
       </div>
     </section>

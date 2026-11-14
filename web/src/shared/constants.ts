@@ -25,6 +25,23 @@ export const STEP_LABEL: Record<Step, string> = {
   3: 'Oracle',
 }
 
+// what each agent is doing, shown while it runs
+export const EXTRACT_STEPS = [
+  'Reading the documents',
+  'Finding bills, money receipts and prescriptions',
+  'Reading patient, physician and treatment dates',
+  'Mapping bill lines to plan expense types',
+  'Reconciling totals with the claimed amount',
+]
+export const REVIEW_STEPS = [
+  'Agent 2 · checking each line against receipts',
+  'Agent 2 · checking medicines against the prescription',
+  'Agent 2 · applying plan limits',
+  'Agent 3 · auditing dates, names and duplicates',
+  'Agent 3 · checking coverage exclusions',
+  'Writing the recommendation',
+]
+
 // ACPS lookup values (x_claim_* tables), same as ocr-extract
 export const CLAIM_TYPES = ['GENERAL', 'OPTICAL', 'DENTAL']
 export const PHYSICIAN_TYPES = ['GENERAL PRACTITIONER', 'SPECIALIST', 'OPHTHALMOLOGIST', 'BDS']
@@ -37,6 +54,12 @@ export const EXPENSE_CODES: Record<string, string[]> = {
     'CONSULTANCY', 'INVESTIGATION', 'MEDICINE', 'ROOT_CANAL', 'SCALING', 'CAPPING',
     'FILLING', 'ROUTINE_EXTRACTION', 'SURGICAL_EXTRACTION', 'OTHERS',
   ],
+}
+
+export const STATUS_LABEL: Record<string, string> = {
+  SETTLED: 'Settle',
+  'DOCUMENTS REQUIRED': 'Ask for documents',
+  REGRETTED: 'Regret',
 }
 
 export const STATUS_TONE: Record<string, 'good' | 'warn' | 'bad'> = {
