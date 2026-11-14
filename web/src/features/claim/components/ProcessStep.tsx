@@ -1,7 +1,13 @@
+import { Check, X } from 'lucide-react'
 import type { CSSProperties } from 'react'
-import { Typewriter } from '../../../shared/components/Typewriter'
-import { STATUS_LABEL, STATUS_TONE } from '../../../shared/constants'
-import { bdt, humanize } from '../../../shared/format'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { Typewriter } from '@/shared/components/Typewriter'
+import { AMOUNT_TOLERANCE_BDT, NAME_CHECK, STATUS_LABEL, STATUS_TONE, TONE_TEXT } from '@/shared/constants'
+import { bdt, humanize } from '@/shared/format'
 import type { OfficerDecision, Review } from '../types'
 import { OfficerComparison } from './OfficerComparison'
 
@@ -17,104 +23,160 @@ interface Props {
 
 const order = (i: number) => ({ '--i': i }) as CSSProperties
 
+// only compare with the officer when these documents are clearly that claim's
+function sameClaim(officer: OfficerDecision, review: Review) {
+  const samePatient = review.checks.find((c) => c.check === NAME_CHECK)?.passed ?? false
+  const gap = Math.abs(officer.claimed_amount - review.total_claimed)
+  return samePatient && gap <= Math.max(AMOUNT_TOLERANCE_BDT, officer.claimed_amount * 0.02)
+}
+
 export function ProcessStep(props: Props) {
   const { review, officerDecision, reviewedBy, canSignOff, busy, onBack, onSignOff } = props
   const failed = review.checks.filter((c) => !c.passed).length
+  const tone = STATUS_TONE[review.status]
 
   return (
-    <div className="stack">
-      <section className={`card verdict tone-${STATUS_TONE[review.status]}`} aria-live="polite">
-        <div>
-          <span className="eyebrow">The AI recommends</span>
-          <p className="verdict-status">{STATUS_LABEL[review.status]}</p>
-          {review.rejection_reason && <p className="reason">{humanize(review.rejection_reason)}</p>}
-          {review.required_documents && <p className="reason">Ask the member for: {review.required_documents}</p>}
-          <p className="ai-voice">
-            <Typewriter text={review.summary} delayMs={450} />
-          </p>
-        </div>
-        <dl className="totals">
-          <div><dt>Payable</dt><dd className="big">{bdt(review.total_payable)}</dd></div>
-          <div><dt>Claimed</dt><dd>{bdt(review.total_claimed)}</dd></div>
-          <div><dt>OPD limit left after this claim</dt><dd>{bdt(review.limit_after)}</dd></div>
-        </dl>
-      </section>
+    <div className="grid gap-4">
+      <Card className="ai-top" aria-live="polite">
+        <CardContent className="grid gap-8 md:grid-cols-[1fr_auto]">
+          <div>
+            <p className="text-sm text-muted-foreground">The AI recommends</p>
+            <p className={cn('land my-1.5 text-4xl font-bold tracking-tight', TONE_TEXT[tone])}>
+              {STATUS_LABEL[review.status]}
+            </p>
+            {review.rejection_reason && <p className="mb-2 font-medium">{humanize(review.rejection_reason)}</p>}
+            {review.required_documents && (
+              <p className="mb-2 font-medium">Ask the member for: {review.required_documents}</p>
+            )}
+            <p className="max-w-[70ch] text-[15px] leading-relaxed">
+              <Typewriter text={review.summary} delayMs={450} />
+            </p>
+          </div>
+          <dl className="grid min-w-56 content-start gap-3 md:border-l md:pl-6">
+            <div>
+              <dt className="text-sm text-muted-foreground">Payable</dt>
+              <dd className="text-3xl font-bold tracking-tight">{bdt(review.total_payable)}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-muted-foreground">Claimed</dt>
+              <dd className="text-lg font-semibold">{bdt(review.total_claimed)}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-muted-foreground">OPD limit left after this claim</dt>
+              <dd className="text-lg font-semibold">{bdt(review.limit_after)}</dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
 
-      <div className="two-col">
-        <section className="card">
-          <span className="eyebrow">Agent 2</span>
-          <h3>Processing</h3>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Expense</th>
-                <th className="num">Claimed</th>
-                <th className="num">Deducted</th>
-                <th className="num">Payable</th>
-              </tr>
-            </thead>
-            <tbody className="stagger">
-              {review.expenses.map((e, i) => (
-                <tr key={e.category} style={order(i)}>
-                  <td>
-                    {humanize(e.category)}
-                    {e.remarks.map((r) => (
-                      <div key={r} className="remark">{r}</div>
-                    ))}
-                  </td>
-                  <td className="num">{bdt(e.claimed)}</td>
-                  <td className={`num${e.deducted ? ' bad' : ''}`}>{e.deducted ? `−${bdt(e.deducted)}` : '—'}</td>
-                  <td className="num"><strong>{bdt(e.payable)}</strong></td>
-                </tr>
+      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Processing</CardTitle>
+            <CardDescription>Agent 2: deductions and plan limits per expense</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Expense</TableHead>
+                  <TableHead className="text-right">Claimed</TableHead>
+                  <TableHead className="text-right">Deducted</TableHead>
+                  <TableHead className="text-right">Payable</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="stagger">
+                {review.expenses.map((e, i) => (
+                  <TableRow key={e.category} style={order(i)}>
+                    <TableCell className="align-top whitespace-normal">
+                      <div className="font-medium">{humanize(e.category)}</div>
+                      {e.remarks.map((r) => (
+                        <div key={r} className="text-xs text-amber-700">{r}</div>
+                      ))}
+                    </TableCell>
+                    <TableCell className="text-right align-top">{bdt(e.claimed)}</TableCell>
+                    <TableCell className={cn('text-right align-top', e.deducted && 'text-red-600')}>
+                      {e.deducted ? `−${bdt(e.deducted)}` : '—'}
+                    </TableCell>
+                    <TableCell className="text-right align-top font-semibold">{bdt(e.payable)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Audit</CardTitle>
+            <CardDescription>Agent 3: documents, dates, names and history</CardDescription>
+            <CardAction>
+              <Badge
+                variant="outline"
+                className={failed ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}
+              >
+                {failed ? `${failed} issue${failed > 1 ? 's' : ''}` : 'All clear'}
+              </Badge>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <ul className="stagger grid gap-3">
+              {review.checks.map((c, i) => (
+                <li key={c.check} className="flex gap-2.5" style={order(i)}>
+                  <span
+                    className={cn(
+                      'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border',
+                      c.passed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-600',
+                    )}
+                    aria-label={c.passed ? 'Passed' : 'Failed'}
+                  >
+                    {c.passed ? <Check className="size-3" /> : <X className="size-3" />}
+                  </span>
+                  <div className="text-sm">
+                    <div className="font-medium">{c.check}</div>
+                    <div className="text-muted-foreground">{c.detail}</div>
+                  </div>
+                </li>
               ))}
-            </tbody>
-          </table>
-        </section>
-
-        <section className="card">
-          <span className="eyebrow">Agent 3</span>
-          <h3>
-            Audit{' '}
-            <span className={`small ${failed ? 'bad' : 'muted'}`}>
-              {failed ? `${failed} issue${failed > 1 ? 's' : ''} found` : 'nothing found'}
-            </span>
-          </h3>
-          <ul className="checks stagger">
-            {review.checks.map((c, i) => (
-              <li key={c.check} className={c.passed ? 'pass' : 'fail'} style={order(i)}>
-                <span className="mark" aria-label={c.passed ? 'Passed' : 'Failed'}>{c.passed ? '✓' : '✕'}</span>
-                <div>
-                  <strong>{c.check}</strong>
-                  <div className="muted small">{c.detail}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
+            </ul>
+          </CardContent>
+        </Card>
       </div>
 
-      {officerDecision && <OfficerComparison officer={officerDecision} review={review} />}
+      {officerDecision &&
+        (sameClaim(officerDecision, review) ? (
+          <OfficerComparison officer={officerDecision} review={review} />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            The officer's ACPS decision isn't shown: these documents have a different patient or amount from the
+            member's sample claim.
+          </p>
+        ))}
 
-      <section className="card row-between">
-        <div>
-          <span className="eyebrow">Post-audit</span>
-          <p className="small">
+      <Card>
+        <CardHeader>
+          <CardTitle>Post-audit</CardTitle>
+          <CardDescription>
             Reviewed by {reviewedBy}.{' '}
             {review.single_step_approval
               ? `Payable is ${bdt(3000)} or less, so sign-off approves it in one step.`
               : review.status === 'SETTLED'
                 ? 'After sign-off it goes to doctor approval.'
                 : ''}
-          </p>
-          {!canSignOff && <p className="muted small">Switch "Acting as" to the post-audit user to sign off.</p>}
-        </div>
-        <div className="actions">
-          <button onClick={onBack} disabled={busy}>Send back to review</button>
-          <button className="primary" disabled={!canSignOff || busy} onClick={onSignOff}>
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="justify-end gap-3">
+          {!canSignOff && (
+            <span className="mr-auto text-sm text-muted-foreground">Switch "Acting as" to the post-audit user to sign off.</span>
+          )}
+          <Button variant="outline" size="lg" onClick={onBack} disabled={busy}>
+            Send back to review
+          </Button>
+          <Button size="lg" disabled={!canSignOff || busy} onClick={onSignOff}>
             {busy ? 'Posting to Oracle…' : 'Sign off and post to Oracle'}
-          </button>
-        </div>
-      </section>
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

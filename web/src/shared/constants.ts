@@ -56,10 +56,20 @@ export const EXPENSE_CODES: Record<string, string[]> = {
   ],
 }
 
+// server audit check name, and how far claimed amounts may differ and still be the same claim
+export const NAME_CHECK = 'Patient name matches member'
+export const AMOUNT_TOLERANCE_BDT = 50
+
 export const STATUS_LABEL: Record<string, string> = {
   SETTLED: 'Settle',
   'DOCUMENTS REQUIRED': 'Ask for documents',
   REGRETTED: 'Regret',
+}
+
+export const TONE_TEXT: Record<'good' | 'warn' | 'bad', string> = {
+  good: 'text-emerald-700',
+  warn: 'text-amber-700',
+  bad: 'text-red-600',
 }
 
 export const STATUS_TONE: Record<string, 'good' | 'warn' | 'bad'> = {

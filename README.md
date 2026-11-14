@@ -10,7 +10,7 @@ Intimation ─► Agent 1 extract ─► Human review ─► Agents 2+3 review �
 
 - **Agent 1** is the real `ocr-extract` service, called over HTTP.
 - **Agents 2 and 3** share one Gemini call that judges the documents: deductions, audit checks and a suggested status. Code then applies the member's plan limits, submission window, cycle dates, member status, name match and duplicates (`server/app/rules.py`).
-- **The officer's actual decision** from ACPS is shown beside the AI's for each sample, so you can see where they agree.
+- **The officer's actual decision** from ACPS is shown beside the AI's when the uploaded documents are a claim ACPS already processed.
 
 ## Data
 
@@ -65,13 +65,13 @@ Deductions use a fixed remark list cleaned from ACPS `x_expense_remarks`. A bill
 
 ## Demo script
 
-1. **Intimation:** pick a sample claim. Its real member, plan and limit left are shown. Upload that claim's documents.
+1. **Intimation:** search for the member, upload their claim documents and press "Intimate claim". This creates the claim and its intimation number, and Agent 1 reads the documents.
 2. **Review:** acting as a Claims Officer, check the pre-filled form against the document and confirm.
-3. **Processing and audit:** compare the AI's decision with the officer's actual one.
+3. **Processing and audit:** read the AI's decision. If ACPS also processed this claim by hand (same member, same patient and amount), the officer's real decision is shown beside it.
 4. **Post-audit:** switch "Acting as" to the Post-audit user and sign off.
 
 To show the other checks:
-- **Name mismatch:** upload another claim's documents for a sample.
+- **Name mismatch:** pick a member and upload another member's documents.
 - **Duplicate:** sign a claim off, then submit the same documents again.
 
 ## Checks

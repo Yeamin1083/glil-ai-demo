@@ -1,88 +1,103 @@
+import { FileText, Upload } from 'lucide-react'
 import { useState } from 'react'
-import { bdt } from '../../../shared/format'
-import type { Member, Sample } from '../types'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { bdt } from '@/shared/format'
+import type { Member } from '../types'
+import { MemberPicker } from './MemberPicker'
 
 interface Props {
   members: Member[]
-  samples: Sample[]
   busy: boolean
-  onSubmit: (file: File, memberCode: string, sample: Sample | null) => void
+  onSubmit: (file: File, memberCode: string) => void
 }
 
-export function IntimationStep({ members, samples, busy, onSubmit }: Props) {
-  // with ACPS samples loaded, the officer picks the claim; otherwise just a member
-  const [sampleNo, setSampleNo] = useState(samples[0]?.intimation_number ?? '')
-  const [memberCode, setMemberCode] = useState(members[0]?.code ?? '')
+export function IntimationStep({ members, busy, onSubmit }: Props) {
+  const [memberCode, setMemberCode] = useState('')
   const [file, setFile] = useState<File | null>(null)
-
-  const sample = samples.find((s) => s.intimation_number === sampleNo) ?? null
-  const code = sample ? sample.member_code : memberCode
-  const member = members.find((m) => m.code === code)
+  const member = members.find((m) => m.code === memberCode)
 
   return (
-    <section className="card narrow">
-      <h2>Claim intimation</h2>
-      <p className="muted">
-        Pick the claim and upload its documents (bills, money receipts, prescription) as one PDF or
-        image. Agent 1 reads them and pre-fills the intimation.
-      </p>
+    <Card className="mx-auto max-w-2xl">
+      <CardHeader>
+        <CardTitle className="text-xl">Intimate a claim</CardTitle>
+        <CardDescription>
+          Pick the member and upload their claim documents. Agent 1 reads them and fills in the claim for you to check.
+        </CardDescription>
+      </CardHeader>
 
-      {samples.length > 0 ? (
-        <label className="field">
-          <span>Claim (ACPS_T)</span>
-          <select value={sampleNo} onChange={(e) => setSampleNo(e.target.value)}>
-            {samples.map((s) => (
-              <option key={s.intimation_number} value={s.intimation_number}>
-                {s.intimation_number}, submitted {s.reference_date}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : (
-        <label className="field">
-          <span>Member</span>
-          <select value={memberCode} onChange={(e) => setMemberCode(e.target.value)}>
-            {members.map((m) => (
-              <option key={m.code} value={m.code}>
-                {m.name} ({m.relation.toLowerCase()}), {m.code}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
+      <CardContent className="grid gap-5">
+        <div className="grid gap-2">
+          <Label>Member</Label>
+          <MemberPicker members={members} value={memberCode} onChange={setMemberCode} />
+        </div>
 
-      {member && (
-        <dl className="member-card">
-          <div><dt>Member</dt><dd>{member.name}</dd></div>
-          <div><dt>Member code</dt><dd>{member.code} ({member.relation.toLowerCase()})</dd></div>
-          <div><dt>Status</dt><dd className={member.is_active ? '' : 'bad'}>{member.is_active ? 'Active' : 'Inactive'}</dd></div>
-          <div><dt>Plan</dt><dd>Plan {member.plan.plan_name}, OPD {member.plan.claim_type.toLowerCase()} {bdt(member.plan.opd_limit)}</dd></div>
-          <div><dt>Cycle</dt><dd>{member.plan.cycle_start} to {member.plan.cycle_end}</dd></div>
-          <div><dt>OPD limit left</dt><dd>{bdt(member.limit_remaining)}</dd></div>
-        </dl>
-      )}
+        {member && (
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg bg-muted/60 p-4 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-xs text-muted-foreground">Member</dt>
+              <dd className="font-medium">{member.name}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Relation</dt>
+              <dd className="font-medium capitalize">{member.relation.toLowerCase()}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Status</dt>
+              <dd>
+                <Badge variant={member.is_active ? 'secondary' : 'destructive'}>
+                  {member.is_active ? 'Active' : 'Inactive'}
+                </Badge>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Plan</dt>
+              <dd className="font-medium">
+                {member.plan.plan_name}, OPD {bdt(member.plan.opd_limit)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Cycle</dt>
+              <dd className="font-medium">
+                {member.plan.cycle_start} to {member.plan.cycle_end}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">OPD limit left</dt>
+              <dd className="font-medium">{bdt(member.limit_remaining)}</dd>
+            </div>
+          </dl>
+        )}
 
-      <label className={`dropzone${file ? ' has-file' : ''}`}>
-        <input
-          type="file"
-          accept="application/pdf,image/jpeg,image/png,image/webp"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
-        <strong>{file ? file.name : 'Choose claim documents'}</strong>
-        <span className="muted">
-          {file ? `${(file.size / 1024).toFixed(0)} KB` : 'PDF or image of printed documents'}
-        </span>
-      </label>
+        <div className="grid gap-2">
+          <Label htmlFor="claim-documents">Claim documents</Label>
+          <label
+            htmlFor="claim-documents"
+            className="flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed p-8 text-center transition-colors hover:bg-muted/50 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50"
+          >
+            {file ? <FileText className="mb-1 size-5" /> : <Upload className="mb-1 size-5 text-muted-foreground" />}
+            <span className="text-sm font-medium">{file ? file.name : 'Choose a PDF or image'}</span>
+            <span className="text-xs text-muted-foreground">
+              {file ? `${(file.size / 1024).toFixed(0)} KB` : 'Bills, money receipts and prescription, printed not handwritten'}
+            </span>
+            <input
+              id="claim-documents"
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,image/webp"
+              className="sr-only"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+        </div>
+      </CardContent>
 
-      <div className="actions">
-        <button
-          className="primary"
-          disabled={!file || !code || busy}
-          onClick={() => file && onSubmit(file, code, sample)}
-        >
-          {busy ? 'Reading…' : 'Intimate and read documents'}
-        </button>
-      </div>
-    </section>
+      <CardFooter className="justify-end">
+        <Button size="lg" disabled={!file || !member || busy} onClick={() => file && onSubmit(file, memberCode)}>
+          Intimate claim
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }

@@ -57,7 +57,11 @@ async def extract(file: UploadFile):
         raise HTTPException(
             response.status_code, body.get("message") or "Extraction failed."
         )
-    return body["data"]
+    # intimation creates the claim, so it gets its number here
+    return {
+        "intimation_number": f"GH26-DEMO-{next(_intimation_seq):04d}",
+        "extraction": body["data"],
+    }
 
 
 @app.post("/api/review", response_model=Review)
@@ -76,6 +80,7 @@ async def review_endpoint(file: UploadFile, claim: Annotated[str, Form()]):
 
 
 class ApproveIn(BaseModel):
+    intimation_number: str
     claim: ClaimIn
     review: Review
     review_officer: str
@@ -87,7 +92,7 @@ def approve(body: ApproveIn):
     """Post-audit sign-off; stands in for the Oracle write."""
     record_settlement(body.claim, body.review)
     return {
-        "intimation_number": f"GH26-DEMO-{next(_intimation_seq):04d}",
+        "intimation_number": body.intimation_number,
         "member_code": body.claim.member_code,
         "claim_status": body.review.status,
         "rejection_reason": body.review.rejection_reason,

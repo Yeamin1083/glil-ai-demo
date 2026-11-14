@@ -1,4 +1,4 @@
-import type { ClaimIn, Extraction, Fixtures, OracleRecord, Review } from './types'
+import type { ClaimIn, Fixtures, Intimation, OracleRecord, Review } from './types'
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, init)
@@ -15,7 +15,7 @@ export const getFixtures = () => call<Fixtures>('/fixtures')
 export function extractClaim(file: File) {
   const form = new FormData()
   form.append('file', file)
-  return call<Extraction>('/extract', { method: 'POST', body: form })
+  return call<Intimation>('/extract', { method: 'POST', body: form })
 }
 
 export function reviewClaim(file: File, claim: ClaimIn) {
@@ -25,10 +25,22 @@ export function reviewClaim(file: File, claim: ClaimIn) {
   return call<Review>('/review', { method: 'POST', body: form })
 }
 
-export function approveClaim(claim: ClaimIn, review: Review, reviewOfficer: string, postAuditor: string) {
+export function approveClaim(
+  intimationNumber: string,
+  claim: ClaimIn,
+  review: Review,
+  reviewOfficer: string,
+  postAuditor: string,
+) {
   return call<OracleRecord>('/approve', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ claim, review, review_officer: reviewOfficer, post_auditor: postAuditor }),
+    body: JSON.stringify({
+      intimation_number: intimationNumber,
+      claim,
+      review,
+      review_officer: reviewOfficer,
+      post_auditor: postAuditor,
+    }),
   })
 }
