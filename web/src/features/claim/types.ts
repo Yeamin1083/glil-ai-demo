@@ -113,6 +113,12 @@ export interface ExpenseOut {
   deducted: number
   payable: number
   remarks: string[]
+  // ACPS "Limit - Consumed - Remaining", before this line was paid
+  limit: number
+  consumed: number
+  remaining: number
+  count_limit: number | null
+  count_used: number
 }
 
 export interface AuditCheck {

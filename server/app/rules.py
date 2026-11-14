@@ -56,15 +56,27 @@ def apply_limits(
         remarks = [line.remark] if line and line.remark and deducted else []
         payable = expense.claimed - deducted
         used = member["items"].get(expense.category, {"amount": 0, "count": 0})
-
         max_count = plan["item_count_limits"].get(expense.category)
+        cap = plan["item_limits"].get(expense.category)
+
+        # ACPS "Limit - Consumed - Remaining": the item's own cap if it has one,
+        # otherwise the OPD limit it shares with the other items
+        if cap is not None:
+            limit, consumed = cap, used["amount"]
+            left = min(max(cap - used["amount"], 0), remaining)
+        else:
+            limit, consumed, left = (
+                plan["opd_limit"],
+                plan["opd_limit"] - remaining,
+                remaining,
+            )
+
         if max_count is not None and payable and used["count"] >= max_count:
             payable = 0
             remarks.append(
                 fx.REMARK_COUNT_USED.format(item=expense.category, count=used["count"])
             )
 
-        cap = plan["item_limits"].get(expense.category)
         if cap is not None and payable > max(cap - used["amount"], 0):
             payable = max(cap - used["amount"], 0)
             remarks.append(
@@ -85,6 +97,11 @@ def apply_limits(
                 deducted=expense.claimed - payable,
                 payable=payable,
                 remarks=remarks,
+                limit=limit,
+                consumed=consumed,
+                remaining=left,
+                count_limit=max_count,
+                count_used=used["count"],
             )
         )
     return out, remaining

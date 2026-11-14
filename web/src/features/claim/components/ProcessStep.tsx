@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { Typewriter } from '@/shared/components/Typewriter'
 import { AGENT, AMOUNT_TOLERANCE_BDT, NAME_CHECK, STATUS_LABEL, STATUS_TONE, TONE_TEXT } from '@/shared/constants'
@@ -69,40 +69,65 @@ export function ProcessStep(props: Props) {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="grid gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Processing</CardTitle>
             <CardDescription>{AGENT.ADJUDICATION}: deductions and plan limits per expense</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Expense</TableHead>
-                  <TableHead className="text-right">Claimed</TableHead>
-                  <TableHead className="text-right">Deducted</TableHead>
-                  <TableHead className="text-right">Payable</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="stagger">
-                {review.expenses.map((e, i) => (
-                  <TableRow key={e.category} style={order(i)}>
-                    <TableCell className="align-top whitespace-normal">
-                      <div className="font-medium">{humanize(e.category)}</div>
-                      {e.remarks.map((r) => (
-                        <div key={r} className="text-xs text-amber-700">{r}</div>
-                      ))}
-                    </TableCell>
-                    <TableCell className="text-right align-top">{bdt(e.claimed)}</TableCell>
-                    <TableCell className={cn('text-right align-top', e.deducted && 'text-red-600')}>
-                      {e.deducted ? `−${bdt(e.deducted)}` : '—'}
-                    </TableCell>
-                    <TableCell className="text-right align-top font-semibold">{bdt(e.payable)}</TableCell>
+            {/* same columns, in the same order, as the ACPS process page */}
+            <div className="overflow-hidden rounded-lg border">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="pl-3">Expense type</TableHead>
+                    <TableHead>Limit – Consumed – Remaining</TableHead>
+                    <TableHead className="text-right">Claimed</TableHead>
+                    <TableHead className="text-right">Deducted</TableHead>
+                    <TableHead className="text-right">Payable</TableHead>
+                    <TableHead className="pr-3">Remarks</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody className="stagger">
+                  {review.expenses.map((e, i) => (
+                    <TableRow key={e.category} style={order(i)}>
+                      <TableCell className="pl-3 align-top font-medium">{humanize(e.category)}</TableCell>
+                      <TableCell className="align-top tabular-nums">
+                        <span className="text-muted-foreground">
+                          {bdt(e.limit)} – {bdt(e.consumed)} –{' '}
+                        </span>
+                        <span className={cn('font-semibold', e.remaining === 0 && 'text-red-600')}>{bdt(e.remaining)}</span>
+                        {e.count_limit !== null && (
+                          <div className={cn('text-xs text-muted-foreground', e.count_used >= e.count_limit && 'text-red-600')}>
+                            {e.count_used} of {e.count_limit} allowed this cycle
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right align-top tabular-nums">{bdt(e.claimed)}</TableCell>
+                      <TableCell className={cn('text-right align-top tabular-nums', e.deducted && 'text-red-600')}>
+                        {e.deducted ? `−${bdt(e.deducted)}` : '—'}
+                      </TableCell>
+                      <TableCell className="text-right align-top font-semibold tabular-nums">{bdt(e.payable)}</TableCell>
+                      <TableCell className="max-w-72 pr-3 align-top text-xs whitespace-normal text-amber-700">
+                        {e.remarks.length ? e.remarks.join(' ') : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter className="bg-muted/50">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell className="pl-3 font-medium" colSpan={2}>Total</TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums">{bdt(review.total_claimed)}</TableCell>
+                    <TableCell className="text-right font-semibold text-red-600 tabular-nums">
+                      {review.total_claimed - review.total_payable ? `−${bdt(review.total_claimed - review.total_payable)}` : '—'}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums">{bdt(review.total_payable)}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 

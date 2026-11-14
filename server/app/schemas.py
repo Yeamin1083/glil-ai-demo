@@ -57,6 +57,12 @@ class ExpenseOut(BaseModel):
     deducted: int
     payable: int
     remarks: list[str]
+    # ACPS process page "Limit - Consumed - Remaining", before this line was paid
+    limit: int = 0
+    consumed: int = 0
+    remaining: int = 0
+    count_limit: int | None = None
+    count_used: int = 0
 
 
 class Review(BaseModel):

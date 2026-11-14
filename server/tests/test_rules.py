@@ -61,6 +61,22 @@ def test_remaining_limit_caps_payable():
     assert [e.payable for e in result.expenses] == [900, 200]
     assert result.expenses[1].remarks == [fx.REMARK_PARTIAL_LIMIT]
     assert result.limit_after == 0
+    # limit, consumed, remaining per line, as the ACPS process page shows them
+    first, second = result.expenses
+    assert (first.limit, first.consumed, first.remaining) == (50_000, 48_900, 1_100)
+    assert (second.limit, second.consumed, second.remaining) == (50_000, 49_800, 200)
+
+
+def test_item_cap_shows_its_own_limit():
+    # member 3: spectacles cap 2,500, already 2,500 used over 4 purchases
+    result = review(claim("DEMO-7049-0003", {"SPECTACLES": 2000}), settled())
+    spectacles = result.expenses[0]
+    assert (spectacles.limit, spectacles.consumed, spectacles.remaining) == (
+        2_500,
+        2_500,
+        0,
+    )
+    assert (spectacles.count_limit, spectacles.count_used) == (4, 4)
 
 
 def test_spectacles_count_used_up_regrets_for_no_limit():
