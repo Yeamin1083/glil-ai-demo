@@ -79,11 +79,11 @@ export function ReviewStep(props: Props) {
   }
 
   const total = expenseTotal(form)
+  const claimed = Math.round(Number(form.claimed_amount) || 0)
   const deductedTotal = form.expenses.reduce((sum, r) => sum + Math.round(Number(r.deducted) || 0), 0)
-  // the bills show a discount, so the officer must say where it applies before moving on
+  // the claimed amount is gross, so a discount on the bills must be entered before moving on
   const billDiscount = Math.round(Number(extraction.bill_discount?.value) || 0)
   const needsDiscountBreakdown = billDiscount > 0 && deductedTotal === 0
-  const claimed = Math.round(Number(form.claimed_amount) || 0)
   // as in ACPS: what is claimed but is neither an item nor the excess amount
   const gap = claimed - (total + Math.round(Number(form.excess_amount) || 0))
   const badDates = (['treatment_date', 'reference_date'] as const).some((f) => !DATE_PATTERN.test(form[f]))
@@ -287,6 +287,11 @@ export function ReviewStep(props: Props) {
             <p className="text-xs text-muted-foreground">
               If the bills show a discount, the claim officer enters it item by item in the Deducted column.
             </p>
+            {billDiscount > 0 && (
+              <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+                The AI read a discount of {bdt(billDiscount)} on the bills.
+              </p>
+            )}
 
             <div className="overflow-hidden rounded-lg border">
               <Table>
