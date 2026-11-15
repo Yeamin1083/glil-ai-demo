@@ -136,4 +136,13 @@ MODEL_REJECTION_REASONS = (
     "PSYCHIATRIC DISORDER/ANXIETY TREATMENT COST NOT COVERED",
     "CONGENITAL ANOMALY TREATMENT COST NOT PAYABLE",
     "DIETICIAN TREATMENT IS NOT COVERED",
+    "DENTAL & OPTICAL TREATMENT NOT COVERED",
 )
+
+# a plan covers dental and optical treatment only if it lists one of these items
+DENTAL_OPTICAL_ITEMS = ("SPECTACLES", "ROOT_CANAL", "SCALING", "FILLING", "CAPPING", "SURGICAL_EXTRACTION")
+
+
+def covers_dental_optical(plan: dict) -> bool:
+    return any(item in plan["item_limits"] or item in plan["item_count_limits"] for item in DENTAL_OPTICAL_ITEMS)
+

@@ -28,7 +28,7 @@ Return these checks, each with passed true/false and a one-line detail naming wh
 - "Same patient on all documents": every document that names a patient names the same person. Titles, initials and spelling variants are the same person; a receipt without a name passes.
 - "Dates consistent": document dates match the treatment date
 - "Bill totals add up": the line amounts sum to the bill totals
-- "Treatment covered": not an excluded treatment (infertility, family planning, cosmetic or beautification, vaccination, psychiatric or anxiety, congenital anomaly)
+- "Treatment covered": not an excluded treatment (infertility, family planning, cosmetic or beautification, vaccination, psychiatric or anxiety, congenital anomaly), and not dental or optical (dental work, eye tests, eye doctor visits, eye treatment, spectacles) when the member's plan_covers_dental_and_optical is false
 
 STEP 3: status
 - "SETTLED" if the claim is payable.

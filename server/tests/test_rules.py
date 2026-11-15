@@ -139,3 +139,8 @@ def test_summary_follows_the_final_decision_when_rules_override_the_model():
     assert again.status == "REGRETTED"
     assert "regretted" in again.summary
     assert "double" in again.summary.lower()
+
+
+def test_dental_optical_cover_depends_on_the_plan_items():
+    assert fx.covers_dental_optical({"item_limits": {"SPECTACLES": 3000}, "item_count_limits": {}})
+    assert not fx.covers_dental_optical({"item_limits": {"MEDICINE": 100}, "item_count_limits": {}})

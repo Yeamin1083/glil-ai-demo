@@ -39,6 +39,7 @@ async def review_claim(claim: ClaimIn, document: bytes, mime_type: str) -> Model
             {
                 "name": member["name"],
                 "relation": member["relation"],
+                "plan_covers_dental_and_optical": fx.covers_dental_optical(member["plan"]),
             }
         ),
         remarks="\n".join(f"- {r}" for r in fx.MODEL_REMARKS),
