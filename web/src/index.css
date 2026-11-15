@@ -141,10 +141,26 @@
   .ai-gradient { background: var(--ai); }
   .ai-text { background: var(--ai); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
-  /* a value the AI filled and nobody has edited yet */
+  /* Step 3 & Action Item 6: AI auto-extracted fields → Green */
   .ai-filled {
-    background-color: rgb(243 112 33 / 0.05) !important;
-    border-color: rgb(243 112 33 / 0.3) !important;
+    background-color: rgb(16 185 129 / 0.09) !important;
+    border-color: rgb(16 185 129 / 0.55) !important;
+    color: rgb(6 78 59) !important;
+  }
+  .ai-filled:focus, .ai-filled:focus-visible {
+    border-color: rgb(16 185 129 / 0.9) !important;
+    box-shadow: 0 0 0 2px rgb(16 185 129 / 0.25) !important;
+  }
+
+  /* Step 3 & Action Item 6: Human-edited fields → Orange */
+  .human-edited {
+    background-color: rgb(243 112 33 / 0.1) !important;
+    border-color: rgb(243 112 33 / 0.65) !important;
+    color: rgb(154 52 18) !important;
+  }
+  .human-edited:focus, .human-edited:focus-visible {
+    border-color: rgb(243 112 33 / 0.95) !important;
+    box-shadow: 0 0 0 2px rgb(243 112 33 / 0.25) !important;
   }
   .ai-card {
     border-color: transparent !important;
@@ -188,6 +204,30 @@
   .land { animation: land 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
   .stagger > * { animation: rise 0.45s ease-out both; animation-delay: calc(0.3s + var(--i, 0) * 80ms); }
   .reveal-fill { animation: fill-in 0.7s ease-out both; animation-delay: calc(var(--i, 0) * 50ms); }
+
+  /* Apple-inspired welcome page animations */
+  .apple-glow-orb {
+    background: radial-gradient(circle at 50% 50%, rgba(243, 112, 33, 0.22) 0%, rgba(11, 31, 58, 0.12) 50%, transparent 75%);
+    filter: blur(48px);
+    animation: apple-pulse 6s ease-in-out infinite alternate;
+  }
+  .apple-title-gradient {
+    background: linear-gradient(135deg, #0b1f3a 0%, #1e3a8a 35%, #f37021 70%, #ea580c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .apple-card-hover {
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .apple-card-hover:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 20px 40px -15px rgba(243, 112, 33, 0.12), 0 0 0 1px rgba(243, 112, 33, 0.2);
+  }
+}
+@keyframes apple-pulse {
+  0% { transform: scale(0.95); opacity: 0.75; }
+  100% { transform: scale(1.1); opacity: 1; }
 }
 @keyframes blink { to { opacity: 0; } }
 @keyframes sweep { from { transform: translateY(-100%); } to { transform: translateY(380%); } }

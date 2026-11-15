@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { STATUS_TONE, TONE_TEXT } from '@/shared/constants'
+import { STATUS_LABEL, STATUS_TONE, TONE_TEXT } from '@/shared/constants'
 import { bdt, humanize } from '@/shared/format'
 import type { OfficerDecision, Review } from '../types'
 
@@ -24,11 +24,11 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
             <div className="flex items-center gap-2">
               <Scale className="size-4 text-[var(--glil-orange)]" />
               <CardTitle className="text-base font-bold tracking-tight">
-                Benchmark: AI Recommendation vs. Human Claims Officer
+                Benchmark: AI Recommendation vs. Human Claim Officer
               </CardTitle>
             </div>
             <CardDescription className="text-xs text-muted-foreground mt-0.5">
-              Comparison with the actual historic decision recorded by ACPS senior claims officers for this claim.
+              Comparison with the actual historic decision recorded by ACPS Claim Officers for this claim.
             </CardDescription>
           </div>
           <CardAction>
@@ -54,12 +54,12 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
           <div className="rounded-xl border bg-muted/30 p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <User className="size-3.5" /> Human Claims Officer
+                <User className="size-3.5" /> Human Claim Officer
               </span>
               <Badge variant="outline" className="text-[10px] font-mono">ACPS Live Record</Badge>
             </div>
             <div className={cn('text-xl font-bold tracking-tight', TONE_TEXT[STATUS_TONE[officer.status]])}>
-              {humanize(officer.status)}
+              {STATUS_LABEL[officer.status] || humanize(officer.status)}
             </div>
             {officer.rejection_reason && (
               <p className="text-xs font-medium text-amber-900 bg-amber-50 rounded px-2 py-1 border border-amber-200">
@@ -81,12 +81,12 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
           <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50/40 via-background to-blue-50/30 p-4 space-y-2 relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-[var(--glil-orange)] flex items-center gap-1.5">
-                <Sparkles className="size-3.5" /> AI Adjudication Agent
+                <Sparkles className="size-3.5" /> Autonomous Adjudication
               </span>
               <Badge className="bg-[var(--glil-orange)] text-white text-[10px]">Gemini + Policy Rules</Badge>
             </div>
             <div className={cn('text-xl font-bold tracking-tight', TONE_TEXT[STATUS_TONE[review.status]])}>
-              {humanize(review.status)}
+              {STATUS_LABEL[review.status] || humanize(review.status)}
             </div>
             {review.rejection_reason && (
               <p className="text-xs font-medium text-amber-900 bg-amber-50 rounded px-2 py-1 border border-amber-200">
@@ -105,44 +105,35 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
           </div>
         </div>
 
+        {/* Breakdown of Historic Settlement Lines */}
         {officer.expenses.length > 0 && (
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-xs font-semibold">Expense Category (Human Officer)</TableHead>
-                  <TableHead className="text-right text-xs font-semibold">Claimed</TableHead>
-                  <TableHead className="text-right text-xs font-semibold">Deducted</TableHead>
-                  <TableHead className="text-right text-xs font-semibold">Payable</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {officer.expenses.map((e) => (
-                  <TableRow key={e.category} className="hover:bg-transparent text-xs">
-                    <TableCell className="whitespace-normal">
-                      <div className="font-semibold">{humanize(e.category)}</div>
-                      {e.remarks && <div className="text-[11px] text-amber-800">{e.remarks}</div>}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{bdt(e.claimed)}</TableCell>
-                    <TableCell className={cn('text-right tabular-nums font-medium', e.deducted ? 'text-red-600' : 'text-muted-foreground')}>
-                      {e.deducted ? `−${bdt(e.deducted)}` : '—'}
-                    </TableCell>
-                    <TableCell className="text-right font-bold tabular-nums">{bdt(e.payable)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-
-        {(officer.reviewed_by || officer.decided_by) && (
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-            <FileText className="size-3" />
-            <span>
-              {officer.reviewed_by && `ACPS Officer: ${officer.reviewed_by}. `}
-              {officer.decided_by && `Sign-off Authority: ${officer.decided_by}.`}
+          <div className="space-y-2 pt-2 border-t">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Officer&apos;s Recorded Expense Lines (ACPS Database)
             </span>
-          </p>
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/40 text-xs">
+                  <TableRow>
+                    <TableHead className="pl-3">Expense Head</TableHead>
+                    <TableHead className="text-right">Claimed (৳)</TableHead>
+                    <TableHead className="text-right">Approved (৳)</TableHead>
+                    <TableHead className="pr-3 pl-4">Officer Remarks</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="text-xs">
+                  {officer.expenses.map((e, idx) => (
+                    <TableRow key={idx} className="hover:bg-muted/20">
+                      <TableCell className="pl-3 font-medium">{humanize(e.category)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{bdt(e.claimed)}</TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums">{bdt(e.payable)}</TableCell>
+                      <TableCell className="pr-3 pl-4 text-muted-foreground">{e.remarks || '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

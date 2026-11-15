@@ -77,7 +77,7 @@ export interface User {
   id: string
   name: string
   designation: string | null
-  role: 'CLAIMS_OFFICER' | 'POST_AUDITOR'
+  role: 'CLAIMS_OFFICER' | 'POST_AUDITOR' | 'HR_ADMIN'
 }
 
 export interface Fixtures {

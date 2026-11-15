@@ -57,15 +57,21 @@ _FICTIONAL = {
     },
     "users": [
         {
+            "id": "hr1",
+            "name": "Sadia Rahman",
+            "designation": "HR Manager",
+            "role": "HR_ADMIN",
+        },
+        {
             "id": "o1",
             "name": "Farhana Islam",
-            "designation": "Officer",
+            "designation": "Claim Officer",
             "role": "CLAIMS_OFFICER",
         },
         {
             "id": "o2",
             "name": "Arif Hossain",
-            "designation": "Officer",
+            "designation": "Claim Officer",
             "role": "CLAIMS_OFFICER",
         },
         {

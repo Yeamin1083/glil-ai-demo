@@ -17,13 +17,13 @@ export function OracleStep({ record, onNext }: Props) {
   const [copied, setCopied] = useState(false)
 
   const intimationNo = String(record.intimation_number || 'GH26-DEMO-0001')
-  const voucherId = `ORCL-GL-${intimationNo.replace(/[^a-zA-Z0-9]/g, '')}`
+  const voucherId = `ACPS-GL-${intimationNo.replace(/[^a-zA-Z0-9]/g, '')}`
   const memberCode = String(record.member_code || '')
   const claimStatus = String(record.claim_status || 'SETTLED')
   const approvalStatus = String(record.approval_status || 'APPROVED')
   const claimedAmt = Number(record.claimed_amount) || 0
   const payableAmt = Number(record.payable_amount) || 0
-  const reviewedBy = String(record.reviewed_by || 'Claims Officer')
+  const reviewedBy = String(record.reviewed_by || 'Claim Officer')
   const postAuditedBy = String(record.post_audited_by || 'Claim Analyst')
   const settledAt = record.settled_at ? String(record.settled_at).replace('T', ' ') : 'Just now'
 
@@ -35,7 +35,7 @@ export function OracleStep({ record, onNext }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      {/* Executive Hero Confirmation Card */}
+      {/* Executive Hero Confirmation Card (Action Item 10: ACPS Submit) */}
       <Card className="overflow-hidden border-emerald-200/80 shadow-md">
         <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 px-6 py-6 text-white">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -45,13 +45,13 @@ export function OracleStep({ record, onNext }: Props) {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold tracking-tight">Core System Settlement Confirmed</h2>
+                  <h2 className="text-xl font-bold tracking-tight">ACPS Settlement &amp; Core Submit Confirmed</h2>
                   <Badge className="border-0 bg-white/20 text-white hover:bg-white/30 text-xs">
-                    Committed to Oracle Core
+                    ACPS Submit Complete
                   </Badge>
                 </div>
                 <p className="text-sm text-emerald-50">
-                  Intimation <span className="font-mono font-semibold">{intimationNo}</span> has been written to the General Ledger & ACPS database.
+                  Intimation <span className="font-mono font-semibold">{intimationNo}</span> has been written to the ACPS database and Core General Ledger.
                 </p>
               </div>
             </div>
@@ -90,16 +90,16 @@ export function OracleStep({ record, onNext }: Props) {
 
           <Separator />
 
-          {/* Audit & Compliance Sign-Off Trail */}
+          {/* Audit & Compliance Sign-Off Trail (Action Item 3: Claim Officer) */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Sign-Off & Governance Audit Trail
+              Sign-Off &amp; Governance Audit Trail
             </h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex items-start gap-3 rounded-lg border p-3">
                 <FileCheck className="mt-0.5 size-4 text-[var(--glil-orange)] shrink-0" />
                 <div className="text-xs">
-                  <div className="font-medium text-foreground">Claims Officer Review</div>
+                  <div className="font-medium text-foreground">Claim Officer Review</div>
                   <div className="text-muted-foreground">Verified by: <span className="font-semibold text-foreground">{reviewedBy}</span></div>
                   <div className="text-muted-foreground">OCR extraction confirmed against original documents</div>
                 </div>
@@ -108,32 +108,32 @@ export function OracleStep({ record, onNext }: Props) {
               <div className="flex items-start gap-3 rounded-lg border p-3">
                 <ShieldCheck className="mt-0.5 size-4 text-emerald-600 shrink-0" />
                 <div className="text-xs">
-                  <div className="font-medium text-foreground">Post-Audit & Compliance</div>
+                  <div className="font-medium text-foreground">Post-Audit &amp; Compliance</div>
                   <div className="text-muted-foreground">Audited by: <span className="font-semibold text-foreground">{postAuditedBy}</span></div>
-                  <div className="text-muted-foreground">Signed off & posted to core disbursement channel</div>
+                  <div className="text-muted-foreground">Signed off &amp; posted to ACPS core disbursement channel</div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Turnaround Time Comparison (Executive Presentation Highlight) */}
+          {/* Turnaround Time Metric (Action Item 5: Removed Legacy Manual Time) */}
           <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Clock className="size-4 text-indigo-700" />
               <span className="text-xs font-bold uppercase tracking-wider text-indigo-900">
-                Executive ROI & Efficiency Metric
+                Executive ROI &amp; Efficiency Metric
               </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="rounded-lg border border-indigo-200/60 bg-white/70 p-3">
                 <div className="text-muted-foreground">Automated Turnaround (TAT)</div>
-                <div className="text-base font-bold text-indigo-900">18.4 Seconds</div>
-                <div className="text-[11px] text-muted-foreground">From upload to Oracle sync</div>
+                <div className="text-lg font-bold text-indigo-900 mt-0.5">18.4 Seconds</div>
+                <div className="text-[11px] text-muted-foreground">From upload to ACPS settlement sync</div>
               </div>
-              <div>
-                <div className="text-muted-foreground">Turnaround Improvement</div>
-                <div className="text-base font-bold text-emerald-700">99.8% Faster</div>
-                <div className="text-[11px] text-muted-foreground">Immediate customer satisfaction</div>
+              <div className="rounded-lg border border-emerald-200/60 bg-white/70 p-3">
+                <div className="text-muted-foreground">Turnaround Efficiency Improvement</div>
+                <div className="text-lg font-bold text-emerald-700 mt-0.5">99.8% Faster</div>
+                <div className="text-[11px] text-emerald-700/80">Immediate member satisfaction &amp; SLA compliance</div>
               </div>
             </div>
           </div>
@@ -147,7 +147,7 @@ export function OracleStep({ record, onNext }: Props) {
             >
               <span className="flex items-center gap-2">
                 <Layers className="size-3.5" />
-                <span>Oracle ERP Integration Payload (JSON for IT & Architecture Review)</span>
+                <span>ACPS Integration Payload (JSON for IT &amp; Architecture Review)</span>
               </span>
               {showJson ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
             </button>

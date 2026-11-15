@@ -1,4 +1,4 @@
-import { ArrowRight, ExternalLink, FileText, Info, Plus, Sparkles, X } from 'lucide-react'
+import { ArrowRight, CheckCircle2, ExternalLink, FileText, Info, Plus, Sparkles, X } from 'lucide-react'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -55,35 +55,54 @@ export function ReviewStep(props: Props) {
   const { file, intimationNumber, extraction, member, form, confidence, canSubmit, busy, onChange, onSubmit } = props
   const previewUrl = useMemo(() => URL.createObjectURL(file), [file])
   useEffect(() => () => URL.revokeObjectURL(previewUrl), [previewUrl])
+
+  // Track user edits for Step 3 & Action Item 6: Green for AI, Orange for Human
   const [touched, setTouched] = useState<Set<FormField>>(() => new Set())
+  const [touchedExpenses, setTouchedExpenses] = useState<Set<number>>(() => new Set())
 
   const set = (field: FormField, value: string) => {
     setTouched((t) => new Set(t).add(field))
     onChange({ ...form, [field]: value })
   }
-  const setExpense = (i: number, patch: Partial<ClaimForm['expenses'][number]>) =>
+
+  const setExpense = (i: number, patch: Partial<ClaimForm['expenses'][number]>) => {
+    setTouchedExpenses((t) => new Set(t).add(i))
     onChange({
       ...form,
       expenses: form.expenses.map((row, j) => (j === i ? { ...row, ...patch, confidence: null } : row)),
     })
+  }
 
   const total = expenseTotal(form)
   const claimed = Math.round(Number(form.claimed_amount) || 0)
   const badDates = (['treatment_date', 'reference_date'] as const).some((f) => !DATE_PATTERN.test(form[f]))
   const codes = EXPENSE_CODES[form.claim_type] ?? EXPENSE_CODES.GENERAL
+  const isHrPreIntimated = intimationNumber.includes('HR')
 
   const field = (name: FormField, label: string, opts: { options?: string[]; hint?: string } = {}) => {
-    const fromAi = !touched.has(name) && name !== 'reference_date' && form[name] !== ''
+    const isHumanEdited = touched.has(name)
+    const fromAi = !isHumanEdited && name !== 'reference_date' && form[name] !== ''
+
     const control = cn(
-      'reveal-fill w-full text-sm font-medium transition-colors',
-      fromAi && 'ai-filled',
+      'reveal-fill w-full text-sm font-medium transition-all duration-200',
+      fromAi && 'ai-filled', // Green highlight per Step 3 / Item 6
+      isHumanEdited && 'human-edited', // Orange highlight per Step 3 / Item 6
       confidence[name] === 'low' && 'border-amber-400 bg-amber-50/60'
     )
     const style = { '--i': FIELD_ORDER.indexOf(name) } as CSSProperties
+
     return (
       <div className="grid gap-1.5">
         <Label htmlFor={name} className="flex items-center justify-between text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-          <span>{label}</span>
+          <span className="flex items-center gap-1.5">
+            <span>{label}</span>
+            {fromAi && (
+              <span className="inline-block size-2 rounded-full bg-emerald-500" title="AI Auto-Extracted (Green)" />
+            )}
+            {isHumanEdited && (
+              <span className="inline-block size-2 rounded-full bg-[var(--glil-orange)]" title="Human Edited (Orange)" />
+            )}
+          </span>
           <ConfidenceBadge level={confidence[name]} />
         </Label>
         {opts.options ? (
@@ -136,28 +155,65 @@ export function ReviewStep(props: Props) {
         )}
       </Card>
 
-      {/* Right Column: Claims Officer Extraction Form */}
+      {/* Right Column: Claim Officer Verification Form */}
       <Card className="border-border/80 shadow-sm">
         <CardHeader className="glil-card-header rounded-t-xl pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <CardTitle className="text-xl font-bold tracking-tight">Claims Officer Verification</CardTitle>
+              <CardTitle className="text-xl font-bold tracking-tight">Claim Officer Verification</CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                Intimation <span className="font-mono font-semibold text-foreground">{intimationNumber}</span> · Review AI-extracted clinical and financial fields against the original document.
+                Intimation <span className="font-mono font-semibold text-foreground">{intimationNumber}</span> · Verify clinical & financial fields against source documents.
               </CardDescription>
             </div>
             <CardAction>
               <Badge variant="outline" className="gap-1.5 border-orange-200 bg-orange-50 text-[var(--glil-orange)] text-xs font-semibold">
-                <Sparkles className="size-3" /> Auto-Extracted by {AGENT.INTAKE}
+                <Sparkles className="size-3" /> Auto-Extracted for Claim Officer
               </Badge>
             </CardAction>
           </div>
         </CardHeader>
 
-        <CardContent className="grid gap-6 pt-6">
+        <CardContent className="grid gap-5 pt-5">
+          {/* HR Pre-Intimation Banner (Step 2) */}
+          {isHrPreIntimated && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 flex items-center justify-between text-xs text-emerald-950 shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <div className="grid size-7 place-items-center rounded-full bg-emerald-600 text-white shrink-0">
+                  <CheckCircle2 className="size-4" />
+                </div>
+                <div>
+                  <span className="font-bold block">Pre-Intimated &amp; Corporate HR Approved</span>
+                  <span className="text-[11px] text-emerald-800">
+                    Bypassed initial intimation: Submitted and endorsed by Corporate HR for member {member.name}.
+                  </span>
+                </div>
+              </div>
+              <Badge className="bg-emerald-700 text-white hover:bg-emerald-700 text-[10px]">
+                HR Verified
+              </Badge>
+            </div>
+          )}
+
+          {/* Visual Legend for Step 3 & Action Item 6 */}
+          <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-slate-50 border rounded-lg text-xs">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Audit Field Color Guide:
+            </span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5 font-medium text-emerald-800">
+                <span className="size-3 rounded-md bg-emerald-100 border-2 border-emerald-500" />
+                <span>AI Auto-Extracted (Green)</span>
+              </div>
+              <div className="flex items-center gap-1.5 font-medium text-orange-800">
+                <span className="size-3 rounded-md bg-orange-100 border-2 border-[var(--glil-orange)]" />
+                <span>Human Changed (Orange)</span>
+              </div>
+            </div>
+          </div>
+
           {extraction.summary && (
             <div className="ai-edge rounded-lg border bg-gradient-to-r from-orange-50/20 via-background to-blue-50/20 py-3 pr-4 pl-5 text-xs leading-relaxed text-muted-foreground">
-              <span className="font-semibold text-foreground block mb-0.5">Intake Agent Analysis:</span>
+              <span className="font-semibold text-foreground block mb-0.5">Intake Analysis:</span>
               <Typewriter text={extraction.summary} />
             </div>
           )}
@@ -166,13 +222,13 @@ export function ReviewStep(props: Props) {
           <section className="grid gap-4">
             <div className="flex items-center justify-between border-b pb-1.5">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                1. Member & Intimation Details
+                1. Member &amp; Intimation Details
               </h3>
               <span className="text-[11px] text-muted-foreground">Policy: Plan {member.plan.plan_name}</span>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <div className="grid gap-1.5">
-                <Label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Member Name & Code</Label>
+                <Label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Member Name &amp; Code</Label>
                 <Input value={`${member.name} (${member.code})`} disabled className="bg-muted font-medium" />
               </div>
               {field('patient_name', 'Patient Name')}
@@ -190,7 +246,7 @@ export function ReviewStep(props: Props) {
           <section className="grid gap-4">
             <div className="border-b pb-1.5">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                2. Clinical & Treatment Information
+                2. Clinical &amp; Treatment Information
               </h3>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -206,7 +262,7 @@ export function ReviewStep(props: Props) {
           <section className="grid gap-3">
             <div className="flex items-center justify-between border-b pb-1.5">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                3. Itemized Bill Breakdown & Plan Limits
+                3. Itemized Bill Breakdown &amp; Plan Limits
               </h3>
               <Button
                 variant="outline"
@@ -234,55 +290,72 @@ export function ReviewStep(props: Props) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {form.expenses.map((row, i) => (
-                    <TableRow key={i} className="hover:bg-muted/30">
-                      <TableCell className="pl-3 align-top">
-                        <div className="flex items-center gap-2">
-                          <Select value={row.category} onValueChange={(v) => setExpense(i, { category: v })}>
-                            <SelectTrigger className={cn('w-full max-w-56 text-xs h-9', row.confidence && 'ai-filled')}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[...new Set([row.category, ...codes])].map((c) => (
-                                <SelectItem key={c} value={c}>{humanize(c)}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <ConfidenceBadge level={row.confidence} />
-                        </div>
-                      </TableCell>
-                      <LimitCells info={limitBefore(member, row.category)} />
-                      <TableCell className="align-top">
-                        <InputGroup className={cn('ml-auto w-32 h-9', row.confidence && 'ai-filled')}>
-                          <InputGroupAddon>
-                            <InputGroupText className="text-xs">৳</InputGroupText>
-                          </InputGroupAddon>
-                          <InputGroupInput
-                            inputMode="decimal"
-                            aria-label={`${humanize(row.category)} claimed`}
-                            value={row.claimed}
-                            className="text-right tabular-nums text-xs font-semibold"
-                            onChange={(e) => setExpense(i, { claimed: e.target.value })}
-                          />
-                        </InputGroup>
-                      </TableCell>
-                      <TableCell className="pr-2 text-right align-top">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`Remove ${humanize(row.category)}`}
-                          className="size-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => onChange({ ...form, expenses: form.expenses.filter((_, j) => j !== i) })}
-                        >
-                          <X className="size-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {form.expenses.map((row, i) => {
+                    const isRowEdited = touchedExpenses.has(i) || !row.confidence
+                    const isRowAi = !isRowEdited && !!row.confidence
+
+                    return (
+                      <TableRow key={i} className="hover:bg-muted/30">
+                        <TableCell className="pl-3 align-top">
+                          <div className="flex items-center gap-2">
+                            <Select value={row.category} onValueChange={(v) => setExpense(i, { category: v })}>
+                              <SelectTrigger
+                                className={cn(
+                                  'w-full max-w-56 text-xs h-9 transition-colors',
+                                  isRowAi && 'ai-filled',
+                                  isRowEdited && 'human-edited'
+                                )}
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[...new Set([row.category, ...codes])].map((c) => (
+                                  <SelectItem key={c} value={c}>{humanize(c)}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <ConfidenceBadge level={row.confidence} />
+                          </div>
+                        </TableCell>
+                        <LimitCells info={limitBefore(member, row.category)} />
+                        <TableCell className="align-top">
+                          <InputGroup
+                            className={cn(
+                              'ml-auto w-32 h-9 transition-colors',
+                              isRowAi && 'ai-filled',
+                              isRowEdited && 'human-edited'
+                            )}
+                          >
+                            <InputGroupAddon>
+                              <InputGroupText className="text-xs">৳</InputGroupText>
+                            </InputGroupAddon>
+                            <InputGroupInput
+                              inputMode="decimal"
+                              aria-label={`${humanize(row.category)} claimed`}
+                              value={row.claimed}
+                              className="text-right tabular-nums text-xs font-semibold"
+                              onChange={(e) => setExpense(i, { claimed: e.target.value })}
+                            />
+                          </InputGroup>
+                        </TableCell>
+                        <TableCell className="pr-2 text-right align-top">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Remove ${humanize(row.category)}`}
+                            className="size-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => onChange({ ...form, expenses: form.expenses.filter((_, j) => j !== i) })}
+                          >
+                            <X className="size-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                   {form.expenses.length === 0 && (
                     <TableRow className="hover:bg-transparent">
                       <TableCell colSpan={6} className="py-6 text-center text-xs text-muted-foreground">
-                        No expenses yet. Click "Add Row" to add itemized expenses.
+                        No expenses yet. Click &quot;Add Row&quot; to add itemized expenses.
                       </TableCell>
                     </TableRow>
                   )}
@@ -302,7 +375,7 @@ export function ReviewStep(props: Props) {
           {total !== claimed && (
             <Alert className="border-amber-300 bg-amber-50/70 text-amber-900">
               <AlertDescription className="text-xs text-amber-900 flex items-center gap-2">
-                <span>⚠️ Note: Itemized lines total {bdt(total)}, while claimed bill amount is {bdt(claimed)}. The Adjudication Agent will audit this discrepancy.</span>
+                <span>⚠️ Note: Itemized lines total {bdt(total)}, while claimed bill amount is {bdt(claimed)}. The Adjudication Engine will audit this discrepancy.</span>
               </AlertDescription>
             </Alert>
           )}
@@ -316,7 +389,7 @@ export function ReviewStep(props: Props) {
           {extraction.extraction_notes && (
             <Alert className="bg-slate-50 border-slate-200">
               <Info className="size-4 text-[var(--glil-orange)]" />
-              <AlertTitle className="text-xs font-semibold">Intake Agent Footnotes</AlertTitle>
+              <AlertTitle className="text-xs font-semibold">Intake Notes</AlertTitle>
               <AlertDescription className="text-xs text-muted-foreground mt-1">
                 <ul className="list-disc space-y-1 pl-4">
                   {extraction.extraction_notes
@@ -335,18 +408,19 @@ export function ReviewStep(props: Props) {
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t bg-muted/20 px-6 py-4">
           <div className="text-xs text-muted-foreground">
             {!canSubmit ? (
-              <span className="text-amber-800 font-medium">Switch "Acting as" to a Claims Officer in the top bar to submit.</span>
+              <span className="text-amber-800 font-medium">Switch &quot;Acting as&quot; to a Claim Officer in the top bar to submit.</span>
             ) : (
-              <span>Verification complete. Officer review ready for agent adjudication.</span>
+              <span>Verification complete. Officer review ready for claim adjudication.</span>
             )}
           </div>
+          {/* Action Item 7: Renamed to simpler button "Adjudicate Claim" */}
           <Button
             size="lg"
             disabled={!canSubmit || busy || badDates || form.expenses.length === 0}
             onClick={onSubmit}
             className="w-full sm:w-auto bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
           >
-            {busy ? 'Adjudicating…' : 'Confirm & Run AI Adjudication'} <ArrowRight className="size-4" />
+            {busy ? 'Adjudicating…' : 'Process Claim'} <ArrowRight className="size-4" />
           </Button>
         </CardFooter>
       </Card>

@@ -1,12 +1,14 @@
 // roles of the human steps in the ACPS flow; the users themselves come from /api/fixtures
 export const ROLE = {
+  HR_ADMIN: 'HR_ADMIN',
   CLAIMS_OFFICER: 'CLAIMS_OFFICER',
   POST_AUDITOR: 'POST_AUDITOR',
 } as const
 export type Role = (typeof ROLE)[keyof typeof ROLE]
 
 export const ROLE_LABEL: Record<Role, string> = {
-  CLAIMS_OFFICER: 'Claims Officer',
+  HR_ADMIN: 'Corporate HR',
+  CLAIMS_OFFICER: 'Claim Officer',
   POST_AUDITOR: 'Post-audit',
 }
 
@@ -22,17 +24,17 @@ export const STEP_LABEL: Record<Step, string> = {
   0: 'Intimation',
   1: 'Human review',
   2: 'Adjudication & audit',
-  3: 'Oracle',
+  3: 'ACPS Submit',
 }
 
-// the three AI agents, named for the claims job each one does
+// the three AI processing subsystems, named for the claims job each one does
 export const AGENT = {
-  INTAKE: 'Intake agent',
-  ADJUDICATION: 'Adjudication agent',
-  AUDIT: 'Audit agent',
+  INTAKE: 'Intake Processing',
+  ADJUDICATION: 'Adjudication Engine',
+  AUDIT: 'Audit Shield',
 } as const
 
-// what each agent is doing, shown while it runs
+// what each subsystem is doing, shown while it runs
 export const EXTRACT_STEPS = [
   'Reading the documents',
   'Finding bills, money receipts and prescriptions',
@@ -70,7 +72,7 @@ export const AMOUNT_TOLERANCE_BDT = 50
 export const STATUS_LABEL: Record<string, string> = {
   SETTLED: 'Settle',
   'DOCUMENTS REQUIRED': 'Ask for documents',
-  REGRETTED: 'Regret',
+  REGRETTED: 'Review Required',
 }
 
 export const TONE_TEXT: Record<'good' | 'warn' | 'bad', string> = {
@@ -82,7 +84,7 @@ export const TONE_TEXT: Record<'good' | 'warn' | 'bad', string> = {
 export const STATUS_TONE: Record<string, 'good' | 'warn' | 'bad'> = {
   SETTLED: 'good',
   'DOCUMENTS REQUIRED': 'warn',
-  REGRETTED: 'bad',
+  REGRETTED: 'warn',
 }
 
 // ocr-extract and ACPS both use dd-mm-yyyy

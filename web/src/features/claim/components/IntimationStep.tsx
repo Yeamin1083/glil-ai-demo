@@ -98,11 +98,11 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
             <div>
               <CardTitle className="text-xl font-bold tracking-tight">Intimate a Group Health Claim</CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                Step 1: Select the enrolled member and upload original claim documents. The Intake Agent will extract all clinical and financial fields.
+                Step 1: Select the enrolled member and upload original claim documents. The intake engine will extract all clinical and financial fields for the Claim Officer.
               </CardDescription>
             </div>
             <Badge variant="outline" className="gap-1 border-orange-200 bg-orange-50 text-[var(--glil-orange)]">
-              <Sparkles className="size-3" /> Agent 1: OCR Intake
+              <Sparkles className="size-3" /> Claim Officer Intake
             </Badge>
           </div>
         </CardHeader>
@@ -226,7 +226,7 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
             onClick={() => file && onSubmit(file, memberCode)}
             className="bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
           >
-            {busy ? 'Running AI Intake…' : 'Intimate Claim & Run AI Intake'} <ChevronRight className="size-4" />
+            {busy ? 'Running AI Intake…' : 'Intimate Claim'} <ChevronRight className="size-4" />
           </Button>
         </CardFooter>
       </Card>

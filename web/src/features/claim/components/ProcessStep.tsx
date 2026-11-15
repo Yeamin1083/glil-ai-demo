@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, Check, FileCheck, Send, ShieldCheck, Sparkles, X, Zap } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, CheckCircle2, FileCheck, Info, Send, ShieldCheck, Sparkles, X, Zap } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -42,7 +42,7 @@ export function ProcessStep(props: Props) {
       <Card className="ai-top border-border/80 shadow-md overflow-hidden" aria-live="polite">
         <div className="p-6">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-            <div className="space-y-3 flex-1">
+            <div className="space-y-4 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="border-orange-200 bg-orange-50 text-[var(--glil-orange)] text-xs font-semibold gap-1">
                   <Sparkles className="size-3" /> Autonomous Adjudication Verdict
@@ -65,25 +65,74 @@ export function ProcessStep(props: Props) {
                   ) : review.status === 'DOCUMENTS REQUIRED' ? (
                     <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">Action Required</Badge>
                   ) : (
-                    <Badge className="bg-red-100 text-red-800 border-red-300 text-xs">Policy Exclusion</Badge>
+                    <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">Review Required</Badge>
                   )}
                 </div>
               </div>
 
-              {review.rejection_reason && (
-                <div className="rounded-lg border border-red-200 bg-red-50/70 p-3 text-xs text-red-900 font-medium">
-                  Policy Exclusion Reason: {humanize(review.rejection_reason)}
+              {/* Action Item 4: Show All Reasons for Settlement clearly at the top after suggested status */}
+              {review.status === 'SETTLED' && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs space-y-2.5 shadow-2xs">
+                  <div className="flex items-center gap-2 font-bold text-emerald-900 text-sm">
+                    <CheckCircle2 className="size-4 text-emerald-600" />
+                    <span>All Reasons for Settlement:</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-emerald-950 font-medium pt-1">
+                    <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
+                      <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span><strong>Active Policy &amp; Enrollment:</strong> Member policy is active and within valid coverage cycle.</span>
+                    </div>
+                    <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
+                      <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span><strong>Patient Identity Match:</strong> Patient name on medical invoices matches enrolled policyholder record.</span>
+                    </div>
+                    <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
+                      <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span><strong>Submission Window:</strong> Claim submitted within 60-day deadline from treatment date.</span>
+                    </div>
+                    <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
+                      <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span><strong>Authentic Medical Invoices:</strong> Doctor prescription, cash memos, and itemized bill total verified.</span>
+                    </div>
+                    <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
+                      <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span><strong>Plan Limit Available:</strong> Claim payable within remaining OPD balance ({bdt(review.limit_after)} remaining).</span>
+                    </div>
+                    <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
+                      <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span><strong>Anti-Fraud Shield:</strong> Zero duplicate or conflicting historical claims found.</span>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {review.required_documents && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900 font-medium">
-                  Member Request: {review.required_documents}
+              {/* Action Item 2: Rename Regret Claim -> Review Required */}
+              {review.status === 'REGRETTED' && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50/80 p-4 text-xs space-y-2 shadow-2xs">
+                  <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
+                    <AlertTriangle className="size-4 text-amber-600" />
+                    <span>Reasons for Review Requirement:</span>
+                  </div>
+                  <div className="bg-white/80 rounded-lg p-3 border border-amber-200 text-amber-950 font-medium">
+                    {review.rejection_reason ? humanize(review.rejection_reason) : 'Policy variance detected. Claim requires manual senior claim officer review before sign-off.'}
+                  </div>
+                </div>
+              )}
+
+              {review.status === 'DOCUMENTS REQUIRED' && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs space-y-2 shadow-2xs">
+                  <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
+                    <Info className="size-4 text-amber-600" />
+                    <span>Reasons for Additional Document Request:</span>
+                  </div>
+                  <div className="bg-white/80 rounded-lg p-3 border border-amber-200 text-amber-950 font-medium">
+                    {review.required_documents || 'Supporting prescription or original money receipt is missing or unclear.'}
+                  </div>
                 </div>
               )}
 
               <div className="rounded-xl border bg-gradient-to-r from-muted/40 to-muted/20 p-4 text-xs leading-relaxed text-muted-foreground">
-                <span className="font-semibold text-foreground block mb-1">Adjudication Agent Executive Brief:</span>
+                <span className="font-semibold text-foreground block mb-1">Adjudication Executive Brief:</span>
                 <Typewriter text={review.summary} delayMs={300} />
               </div>
             </div>
@@ -109,7 +158,7 @@ export function ProcessStep(props: Props) {
                 <div className={cn('text-lg font-bold mt-0.5', deductionsTotal > 0 ? 'text-red-600' : 'text-muted-foreground')}>
                   {deductionsTotal > 0 ? `−${bdt(deductionsTotal)}` : '৳0'}
                 </div>
-                <div className="text-[11px] text-muted-foreground">Policy limits & exclusions</div>
+                <div className="text-[11px] text-muted-foreground">Policy limits &amp; exclusions</div>
               </div>
 
               <div className="rounded-lg border bg-muted/40 p-3">
@@ -128,7 +177,7 @@ export function ProcessStep(props: Props) {
           <OfficerComparison officer={officerDecision} review={review} />
         ) : (
           <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
-            The officer's ACPS comparison is omitted because this custom intake has a different patient or amount from the sample archive.
+            The officer&apos;s ACPS comparison is omitted because this custom intake has a different patient or amount from the sample archive.
           </div>
         ))}
 
@@ -141,7 +190,7 @@ export function ProcessStep(props: Props) {
               <div>
                 <CardTitle className="text-base font-bold tracking-tight">Adjudication Breakdown</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  {AGENT.ADJUDICATION}: Itemized deduction calculations & plan limit caps
+                  {AGENT.ADJUDICATION}: Itemized deduction calculations &amp; plan limit caps
                 </CardDescription>
               </div>
               <Badge variant="outline" className="text-xs font-mono">ACPS Policy Schedule</Badge>
@@ -208,7 +257,7 @@ export function ProcessStep(props: Props) {
           <CardHeader className="glil-card-header rounded-t-xl pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-bold tracking-tight">Compliance & Anti-Fraud Audit</CardTitle>
+                <CardTitle className="text-base font-bold tracking-tight">Compliance &amp; Anti-Fraud Audit</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
                   {AGENT.AUDIT}: 6-Point Automated Validation Shield
                 </CardDescription>
@@ -256,14 +305,14 @@ export function ProcessStep(props: Props) {
         </Card>
       </div>
 
-      {/* Post-Audit & Final Sign-Off Action */}
+      {/* Post-Audit & Final Sign-Off Action (Action Item 10: ACPS Submit) */}
       <Card className="border-border/80 shadow-sm">
         <CardHeader className="glil-card-header rounded-t-xl pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base font-bold tracking-tight">Post-Audit Sign-Off & Core ERP Posting</CardTitle>
+              <CardTitle className="text-base font-bold tracking-tight">Post-Audit Sign-Off &amp; ACPS Submit</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Verified by claims officer <span className="font-semibold text-foreground">{reviewedBy}</span>.{' '}
+                Verified by Claim Officer <span className="font-semibold text-foreground">{reviewedBy}</span>.{' '}
                 {review.single_step_approval
                   ? `Payable amount (${bdt(review.total_payable)}) qualifies for single-step instant disbursement.`
                   : review.status === 'SETTLED'
@@ -272,7 +321,7 @@ export function ProcessStep(props: Props) {
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-xs gap-1 border-indigo-200 bg-indigo-50 text-indigo-700">
-              <FileCheck className="size-3" /> Ready for Oracle Core
+              <FileCheck className="size-3" /> Ready for ACPS Submit
             </Badge>
           </div>
         </CardHeader>
@@ -281,11 +330,11 @@ export function ProcessStep(props: Props) {
           <div className="text-xs text-muted-foreground">
             {!canSignOff ? (
               <span className="text-amber-800 font-semibold">
-                ⚠️ To sign off, switch "Acting as" in the top bar to the Post-Audit user (Imran Chowdhury).
+                ⚠️ To sign off, switch &quot;Acting as&quot; in the top bar to the Post-Audit user (Imran Chowdhury).
               </span>
             ) : (
               <span className="text-emerald-700 font-semibold">
-                ✓ Authorized Post-Auditor: Ready to approve and write transaction to Oracle.
+                ✓ Authorized Post-Auditor: Ready to approve and submit transaction to ACPS.
               </span>
             )}
           </div>
@@ -301,7 +350,7 @@ export function ProcessStep(props: Props) {
               className="bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
             >
               <Send className="size-4" />
-              {busy ? 'Posting to Oracle E-Business Suite…' : 'Sign Off & Commit to Oracle'}
+              {busy ? 'Submitting to ACPS…' : 'Sign Off & ACPS Submit'}
             </Button>
           </div>
         </CardFooter>

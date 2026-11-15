@@ -54,12 +54,12 @@ export function ScanOverlay({ file, title, steps }: Props) {
         </div>
       </div>
 
-      {/* Multi-Agent Telemetry & Pipeline */}
+      {/* AI Telemetry & Pipeline */}
       <div className="pr-4 space-y-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Badge className="bg-[var(--glil-orange)] text-white gap-1 hover:bg-[var(--glil-orange)]">
-              <Sparkles className="size-3" /> Multi-Agent AI Pipeline
+              <Sparkles className="size-3" /> ACPS AI Pipeline
             </Badge>
             <span className="text-xs font-mono text-muted-foreground">{progress}% Complete</span>
           </div>
@@ -78,13 +78,13 @@ export function ScanOverlay({ file, title, steps }: Props) {
           </div>
         </div>
 
-        {/* 3 Specialized Agents Status */}
+        {/* 3 Specialized Subsystems Status */}
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-lg border bg-muted/40 p-2.5 text-center">
             <div className="flex justify-center mb-1">
               <Bot className="size-4 text-[var(--glil-orange)]" />
             </div>
-            <div className="text-[11px] font-semibold">Agent 1: OCR</div>
+            <div className="text-[11px] font-semibold">Intake OCR</div>
             <div className="text-[10px] text-emerald-600 font-medium">Processing</div>
           </div>
 
@@ -92,7 +92,7 @@ export function ScanOverlay({ file, title, steps }: Props) {
             <div className="flex justify-center mb-1">
               <Layers className="size-4 text-indigo-600" />
             </div>
-            <div className="text-[11px] font-semibold">Agent 2: Adjudicator</div>
+            <div className="text-[11px] font-semibold">Adjudicator</div>
             <div className="text-[10px] text-muted-foreground font-medium">Ready</div>
           </div>
 
@@ -100,7 +100,7 @@ export function ScanOverlay({ file, title, steps }: Props) {
             <div className="flex justify-center mb-1">
               <ShieldCheck className="size-4 text-emerald-600" />
             </div>
-            <div className="text-[11px] font-semibold">Agent 3: Audit Shield</div>
+            <div className="text-[11px] font-semibold">Audit Shield</div>
             <div className="text-[10px] text-muted-foreground font-medium">Ready</div>
           </div>
         </div>
