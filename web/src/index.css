@@ -217,12 +217,88 @@
     background-clip: text;
     color: transparent;
   }
+  /* Font classes for Apple-style Welcome page */
+  .font-montserrat {
+    font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+  }
+  .apple-cursive {
+    font-family: 'Caveat', 'Snell Roundhand', 'Brush Script MT', 'Dancing Script', cursive;
+  }
+
+  /* SVG cursive handwriting draw stroke effect */
+  .apple-draw-text {
+    font-family: 'Caveat', 'Snell Roundhand', 'Brush Script MT', 'Dancing Script', cursive;
+    font-weight: 700;
+    stroke: #f37021;
+    stroke-width: 2.2px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 900;
+    stroke-dashoffset: 900;
+    animation: apple-draw-stroke 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+
   .apple-card-hover {
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .apple-card-hover:hover {
     transform: translateY(-4px) scale(1.01);
     box-shadow: 0 20px 40px -15px rgba(243, 112, 33, 0.12), 0 0 0 1px rgba(243, 112, 33, 0.2);
+  }
+
+  /* Animated pipeline flow beam */
+  .flow-beam {
+    background: linear-gradient(90deg, transparent, rgba(243, 112, 33, 0.9), rgba(59, 130, 246, 0.9), transparent);
+    background-size: 200% 100%;
+    animation: flow-beam 2.2s linear infinite;
+  }
+
+  /* Floating animation */
+  .float-slow {
+    animation: float-slow 4s ease-in-out infinite alternate;
+  }
+
+  /* Radial pulse ring */
+  .pulse-ring {
+    position: relative;
+  }
+  .pulse-ring::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    border: 2px solid rgba(243, 112, 33, 0.5);
+    animation: ring-pulse 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  }
+}
+@keyframes flow-beam {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes float-slow {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-6px); }
+}
+@keyframes ring-pulse {
+  0% { transform: scale(0.95); opacity: 0.9; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+@keyframes apple-draw-stroke {
+  0% {
+    stroke-dashoffset: 900;
+    fill: transparent;
+    opacity: 0.95;
+  }
+  60% {
+    stroke-dashoffset: 0;
+    fill: transparent;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    fill: #0f172a;
+    stroke: rgba(243, 112, 33, 0.4);
+    opacity: 1;
   }
 }
 @keyframes apple-pulse {

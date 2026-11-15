@@ -1,4 +1,4 @@
-import { CheckCircle2, FileText, Scale, Sparkles, User, AlertTriangle } from 'lucide-react'
+import { CheckCircle2, Scale, Sparkles, User, AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -81,7 +81,7 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
           <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50/40 via-background to-blue-50/30 p-4 space-y-2 relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-[var(--glil-orange)] flex items-center gap-1.5">
-                <Sparkles className="size-3.5" /> Autonomous Adjudication
+                <Sparkles className="size-3.5" /> AI Recommendation
               </span>
               <Badge className="bg-[var(--glil-orange)] text-white text-[10px]">Gemini + Policy Rules</Badge>
             </div>

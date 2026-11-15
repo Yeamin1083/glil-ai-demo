@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { Typewriter } from '@/shared/components/Typewriter'
-import { AGENT, CLAIM_TYPES, DATE_PATTERN, EXPENSE_CODES, PHYSICIAN_TYPES, TREATMENT_TYPES } from '@/shared/constants'
+import { CLAIM_TYPES, DATE_PATTERN, EXPENSE_CODES, PHYSICIAN_TYPES, TREATMENT_TYPES } from '@/shared/constants'
 import { bdt, humanize } from '@/shared/format'
 import { expenseTotal, type ClaimForm, type FormField } from '../form'
 import { LimitCells, LimitGroupHead, LimitHeads, limitBefore } from './PlanLimit'
@@ -197,7 +197,7 @@ export function ReviewStep(props: Props) {
           {/* Visual Legend for Step 3 & Action Item 6 */}
           <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-slate-50 border rounded-lg text-xs">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Audit Field Color Guide:
+              Field Status Guide:
             </span>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5 font-medium text-emerald-800">
@@ -375,7 +375,7 @@ export function ReviewStep(props: Props) {
           {total !== claimed && (
             <Alert className="border-amber-300 bg-amber-50/70 text-amber-900">
               <AlertDescription className="text-xs text-amber-900 flex items-center gap-2">
-                <span>⚠️ Note: Itemized lines total {bdt(total)}, while claimed bill amount is {bdt(claimed)}. The Adjudication Engine will audit this discrepancy.</span>
+                <span>⚠️ Note: Itemized lines total {bdt(total)}, while claimed bill amount is {bdt(claimed)}. The verification engine will check this discrepancy.</span>
               </AlertDescription>
             </Alert>
           )}
@@ -410,17 +410,17 @@ export function ReviewStep(props: Props) {
             {!canSubmit ? (
               <span className="text-amber-800 font-medium">Switch &quot;Acting as&quot; to a Claim Officer in the top bar to submit.</span>
             ) : (
-              <span>Verification complete. Officer review ready for claim adjudication.</span>
+              <span>Verification complete. Ready to evaluate claim and calculate payout.</span>
             )}
           </div>
-          {/* Action Item 7: Renamed to simpler button "Adjudicate Claim" */}
+          {/* Action button renamed to simple, clear title */}
           <Button
             size="lg"
             disabled={!canSubmit || busy || badDates || form.expenses.length === 0}
             onClick={onSubmit}
             className="w-full sm:w-auto bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
           >
-            {busy ? 'Adjudicating…' : 'Process Claim'} <ArrowRight className="size-4" />
+            {busy ? 'Evaluating Claim…' : 'Verify & Decide'} <ArrowRight className="size-4" />
           </Button>
         </CardFooter>
       </Card>

@@ -9,7 +9,7 @@ export type Role = (typeof ROLE)[keyof typeof ROLE]
 export const ROLE_LABEL: Record<Role, string> = {
   HR_ADMIN: 'Corporate HR',
   CLAIMS_OFFICER: 'Claim Officer',
-  POST_AUDITOR: 'Post-audit',
+  POST_AUDITOR: 'Senior Auditor',
 }
 
 export const STEP = {
@@ -21,17 +21,17 @@ export const STEP = {
 export type Step = (typeof STEP)[keyof typeof STEP]
 
 export const STEP_LABEL: Record<Step, string> = {
-  0: 'Intimation',
-  1: 'Human review',
-  2: 'Adjudication & audit',
-  3: 'ACPS Submit',
+  0: 'Claim Intake',
+  1: 'Officer Review',
+  2: 'Verify & Decide',
+  3: 'Final Approval',
 }
 
 // the three AI processing subsystems, named for the claims job each one does
 export const AGENT = {
   INTAKE: 'Intake Processing',
-  ADJUDICATION: 'Adjudication Engine',
-  AUDIT: 'Audit Shield',
+  ADJUDICATION: 'Rules & Calculation Engine',
+  AUDIT: 'Policy Shield',
 } as const
 
 // what each subsystem is doing, shown while it runs
@@ -43,12 +43,12 @@ export const EXTRACT_STEPS = [
   'Reconciling totals with the claimed amount',
 ]
 export const REVIEW_STEPS = [
-  'Adjudication: checking each line against receipts',
-  'Adjudication: checking medicines against the prescription',
-  'Adjudication: applying plan limits',
-  'Audit: checking dates, names and claim history',
-  'Audit: checking coverage exclusions',
-  'Writing the recommendation',
+  'Checking itemized expenses against bills',
+  'Matching medicines against prescription',
+  'Applying OPD plan limits and co-pays',
+  'Validating dates, patient identity & claim history',
+  'Checking policy coverage & exclusions',
+  'Calculating settlement decision & payout',
 ]
 
 // ACPS lookup values (x_claim_* tables), same as ocr-extract

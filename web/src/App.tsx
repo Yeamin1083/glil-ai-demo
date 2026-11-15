@@ -27,6 +27,19 @@ const STEP_ICONS = [
   Database,
 ]
 
+interface NavTab {
+  id: 'welcome' | 'claims' | 'hr'
+  label: string
+  icon: typeof Home
+  badge?: number
+}
+
+const NAV_TABS: NavTab[] = [
+  { id: 'welcome', label: 'Welcome', icon: Home },
+  { id: 'claims', label: 'Claims Flow', icon: FileText },
+  { id: 'hr', label: 'HR Pending', icon: Building2, badge: 3 },
+]
+
 export default function App() {
   const [fixtures, setFixtures] = useState<Fixtures | null>(null)
   const [officerId, setOfficerId] = useState('')
@@ -156,90 +169,50 @@ export default function App() {
             </div>
           </button>
 
-          {/* Navigation View Switcher (Welcome / Claims Flow / HR Portal) */}
-          <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl border border-slate-200">
-            <button
-              type="button"
-              onClick={() => setView('welcome')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                view === 'welcome'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              )}
-            >
-              <Home className="size-3.5" />
-              <span>Welcome</span>
-            </button>
+          {/* Apple-Style Sliding Segmented View Switcher */}
+          <nav
+            className="relative flex items-center p-1 rounded-full bg-slate-100/90 border border-slate-200/90 shadow-2xs backdrop-blur w-full max-w-[390px]"
+            aria-label="Main Navigation"
+          >
+            {/* Smooth Gliding Apple Indicator Pill */}
+            <span
+              aria-hidden="true"
+              className="absolute top-1 bottom-1 rounded-full bg-white shadow-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+              style={{
+                left: `calc(${(NAV_TABS.findIndex((t) => t.id === view) * 100) / 3}% + 2px)`,
+                width: 'calc(33.333% - 4px)',
+              }}
+            />
 
-            <button
-              type="button"
-              onClick={() => setView('claims')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                view === 'claims'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              )}
-            >
-              <FileText className="size-3.5" />
-              <span>Claims Flow</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setView('hr')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                view === 'hr'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              )}
-            >
-              <Building2 className="size-3.5" />
-              <span>HR Pending Claims</span>
-              <Badge className="h-4 px-1 text-[10px] bg-amber-500 text-white">
-                3
-              </Badge>
-            </button>
-          </div>
-
-          {/* Multi-Step Progress Tracker */}
-          {view === 'claims' && (
-            <ol className="hidden items-center gap-1.5 xl:flex" aria-label="Claims Flow Progress">
-              {Object.entries(STEP_LABEL).map(([key, label]) => {
-                const n = Number(key)
-                const Icon = STEP_ICONS[n] || FileText
-                const isCurrent = n === step
-                const isPast = n < step
-
-                return (
-                  <li
-                    key={key}
-                    aria-current={isCurrent ? 'step' : undefined}
-                    className={cn(
-                      'flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold whitespace-nowrap transition-all',
-                      isCurrent && 'bg-[var(--glil-orange)] text-white shadow-xs',
-                      isPast && 'text-slate-700 bg-emerald-50 border border-emerald-200/70',
-                      !isCurrent && !isPast && 'text-slate-400 opacity-60'
-                    )}
-                  >
+            {NAV_TABS.map((tab) => {
+              const Icon = tab.icon
+              const isActive = view === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setView(tab.id)}
+                  className={cn(
+                    'relative z-10 flex flex-1 items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-semibold transition-colors duration-200 cursor-pointer select-none',
+                    isActive ? 'text-slate-900 font-bold' : 'text-slate-500 hover:text-slate-800'
+                  )}
+                >
+                  <Icon className={cn('size-3.5 shrink-0 transition-colors', isActive ? 'text-[var(--glil-orange)]' : 'text-slate-400')} />
+                  <span className="truncate">{tab.label}</span>
+                  {tab.badge && (
                     <span
                       className={cn(
-                        'grid size-4 place-items-center rounded-full text-[10px] font-bold',
-                        isCurrent && 'bg-white text-[var(--glil-orange)]',
-                        isPast && 'bg-emerald-600 text-white',
-                        !isCurrent && !isPast && 'bg-slate-200 text-slate-500'
+                        'ml-0.5 inline-flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 h-4 transition-colors',
+                        isActive ? 'bg-[var(--glil-orange)] text-white' : 'bg-amber-100 text-amber-800'
                       )}
                     >
-                      {isPast ? <Check className="size-2.5 stroke-[3]" /> : <Icon className="size-2.5" />}
+                      {tab.badge}
                     </span>
-                    <span>{label}</span>
-                  </li>
-                )
-              })}
-            </ol>
-          )}
+                  )}
+                </button>
+              )
+            })}
+          </nav>
 
           {/* Persona Switcher ("Acting as") */}
           <div className="flex shrink-0 items-center gap-2">
@@ -281,64 +254,117 @@ export default function App() {
           </Alert>
         )}
 
-        {view === 'welcome' ? (
-          /* Step 1: Apple-style Welcome Page */
-          <WelcomePage
-            onStartClaimsFlow={() => setView('claims')}
-            onOpenHrPortal={() => setView('hr')}
-          />
-        ) : view === 'hr' ? (
-          /* Step 2: HR Pending Claims Page */
-          <HrPendingClaimsPage
-            members={fixtures?.members || []}
-            onApproveAndProceed={handleHrApprove}
-            onBackToClaims={() => setView('claims')}
-          />
-        ) : !fixtures ? (
-          <div className="flex items-center justify-center p-16 text-xs text-muted-foreground">
-            <div className="flex flex-col items-center gap-2">
-              <div className="size-8 rounded-full border-2 border-[var(--glil-orange)] border-t-transparent animate-spin" />
-              <span>Connecting to ACPS Claim Gateway…</span>
+        {/* Claims Flow Step Progress Header (Apple Style) */}
+        {view === 'claims' && (
+          <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-2xs backdrop-blur animate-in fade-in duration-300">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold tracking-tight text-slate-900">Claims Processing Pipeline</h2>
+                <Badge variant="outline" className="text-[10px] border-orange-200 bg-orange-50 text-[var(--glil-orange)] font-mono">
+                  Step {step + 1} of 4
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Autonomous claims intake, verification, policy checks, and core ACPS submission.
+              </p>
             </div>
+
+            <ol className="flex flex-wrap items-center gap-2" aria-label="Claims Flow Progress">
+              {Object.entries(STEP_LABEL).map(([key, label]) => {
+                const n = Number(key)
+                const Icon = STEP_ICONS[n] || FileText
+                const isCurrent = n === step
+                const isPast = n < step
+
+                return (
+                  <li
+                    key={key}
+                    aria-current={isCurrent ? 'step' : undefined}
+                    className={cn(
+                      'flex h-8 items-center gap-2 rounded-lg px-3 text-xs font-semibold whitespace-nowrap transition-all',
+                      isCurrent && 'bg-[var(--glil-orange)] text-white shadow-xs',
+                      isPast && 'text-slate-700 bg-emerald-50 border border-emerald-200/70',
+                      !isCurrent && !isPast && 'text-slate-400 bg-slate-100/60'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'grid size-4 place-items-center rounded-full text-[10px] font-bold',
+                        isCurrent && 'bg-white text-[var(--glil-orange)]',
+                        isPast && 'bg-emerald-600 text-white',
+                        !isCurrent && !isPast && 'bg-slate-200 text-slate-500'
+                      )}
+                    >
+                      {isPast ? <Check className="size-2.5 stroke-[3]" /> : <Icon className="size-2.5" />}
+                    </span>
+                    <span>{label}</span>
+                  </li>
+                )
+              })}
+            </ol>
           </div>
-        ) : scanning ? (
-          <ScanOverlay
-            file={scanning.file}
-            title={
-              scanning.agent === 'extract'
-                ? 'Reading Claim Documents...'
-                : 'Checking Policy Rules & Calculating Settlement...'
-            }
-            steps={scanning.agent === 'extract' ? EXTRACT_STEPS : REVIEW_STEPS}
-          />
-        ) : step === STEP.INTIMATION ? (
-          <IntimationStep members={fixtures.members} busy={busy} onSubmit={intimate} />
-        ) : step === STEP.REVIEW && file && extraction && form && member ? (
-          <ReviewStep
-            file={file}
-            intimationNumber={intimationNumber}
-            extraction={extraction}
-            member={member}
-            form={form}
-            confidence={confidence}
-            canSubmit={officer?.role === ROLE.CLAIMS_OFFICER || officer?.role === ROLE.HR_ADMIN}
-            busy={busy}
-            onChange={setForm}
-            onSubmit={sendToProcessing}
-          />
-        ) : step === STEP.PROCESS && review ? (
-          <ProcessStep
-            review={review}
-            officerDecision={sample?.officer_decision ?? null}
-            reviewedBy={reviewedBy || officer?.name || 'Farhana Islam'}
-            canSignOff={officer?.role === ROLE.POST_AUDITOR}
-            busy={busy}
-            onBack={() => setStep(STEP.REVIEW)}
-            onSignOff={signOff}
-          />
-        ) : step === STEP.ORACLE && record ? (
-          <OracleStep record={record} onNext={reset} />
-        ) : null}
+        )}
+
+        <div key={view} className="animate-in fade-in duration-300 ease-out">
+          {view === 'welcome' ? (
+            /* Step 1: Apple-style Welcome Page */
+            <WelcomePage
+              onStartClaimsFlow={() => setView('claims')}
+              onOpenHrPortal={() => setView('hr')}
+            />
+          ) : view === 'hr' ? (
+            /* Step 2: HR Pending Claims Page */
+            <HrPendingClaimsPage
+              members={fixtures?.members || []}
+              onApproveAndProceed={handleHrApprove}
+              onBackToClaims={() => setView('claims')}
+            />
+          ) : !fixtures ? (
+            <div className="flex items-center justify-center p-16 text-xs text-muted-foreground">
+              <div className="flex flex-col items-center gap-2">
+                <div className="size-8 rounded-full border-2 border-[var(--glil-orange)] border-t-transparent animate-spin" />
+                <span>Connecting to ACPS Claim Gateway…</span>
+              </div>
+            </div>
+          ) : scanning ? (
+            <ScanOverlay
+              file={scanning.file}
+              title={
+                scanning.agent === 'extract'
+                  ? 'Reading Claim Documents...'
+                  : 'Checking Policy Rules & Calculating Settlement...'
+              }
+              steps={scanning.agent === 'extract' ? EXTRACT_STEPS : REVIEW_STEPS}
+            />
+          ) : step === STEP.INTIMATION ? (
+            <IntimationStep members={fixtures.members} busy={busy} onSubmit={intimate} />
+          ) : step === STEP.REVIEW && file && extraction && form && member ? (
+            <ReviewStep
+              file={file}
+              intimationNumber={intimationNumber}
+              extraction={extraction}
+              member={member}
+              form={form}
+              confidence={confidence}
+              canSubmit={officer?.role === ROLE.CLAIMS_OFFICER || officer?.role === ROLE.HR_ADMIN}
+              busy={busy}
+              onChange={setForm}
+              onSubmit={sendToProcessing}
+            />
+          ) : step === STEP.PROCESS && review ? (
+            <ProcessStep
+              review={review}
+              officerDecision={sample?.officer_decision ?? null}
+              reviewedBy={reviewedBy || officer?.name || 'Farhana Islam'}
+              canSignOff={officer?.role === ROLE.POST_AUDITOR}
+              busy={busy}
+              onBack={() => setStep(STEP.REVIEW)}
+              onSignOff={signOff}
+            />
+          ) : step === STEP.ORACLE && record ? (
+            <OracleStep record={record} onNext={reset} />
+          ) : null}
+        </div>
       </main>
     </div>
   )

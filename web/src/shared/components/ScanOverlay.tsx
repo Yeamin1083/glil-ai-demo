@@ -92,7 +92,7 @@ export function ScanOverlay({ file, title, steps }: Props) {
             <div className="flex justify-center mb-1">
               <Layers className="size-4 text-indigo-600" />
             </div>
-            <div className="text-[11px] font-semibold">Adjudicator</div>
+            <div className="text-[11px] font-semibold">Rules Engine</div>
             <div className="text-[10px] text-muted-foreground font-medium">Ready</div>
           </div>
 
@@ -100,7 +100,7 @@ export function ScanOverlay({ file, title, steps }: Props) {
             <div className="flex justify-center mb-1">
               <ShieldCheck className="size-4 text-emerald-600" />
             </div>
-            <div className="text-[11px] font-semibold">Audit Shield</div>
+            <div className="text-[11px] font-semibold">Policy Shield</div>
             <div className="text-[10px] text-muted-foreground font-medium">Ready</div>
           </div>
         </div>

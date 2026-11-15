@@ -32,7 +32,8 @@ function sameClaim(officer: OfficerDecision, review: Review) {
 
 export function ProcessStep(props: Props) {
   const { review, officerDecision, reviewedBy, canSignOff, busy, onBack, onSignOff } = props
-  const failed = review.checks.filter((c) => !c.passed).length
+  const failedChecks = review.checks.filter((c) => !c.passed)
+  const failed = failedChecks.length
   const tone = STATUS_TONE[review.status]
   const deductionsTotal = review.total_claimed - review.total_payable
 
@@ -45,7 +46,7 @@ export function ProcessStep(props: Props) {
             <div className="space-y-4 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="border-orange-200 bg-orange-50 text-[var(--glil-orange)] text-xs font-semibold gap-1">
-                  <Sparkles className="size-3" /> Autonomous Adjudication Verdict
+                  <Sparkles className="size-3" /> AI Decision Verdict
                 </Badge>
                 {review.single_step_approval && (
                   <Badge className="bg-emerald-600 text-white text-xs font-semibold gap-1 hover:bg-emerald-600">
@@ -132,7 +133,7 @@ export function ProcessStep(props: Props) {
               )}
 
               <div className="rounded-xl border bg-gradient-to-r from-muted/40 to-muted/20 p-4 text-xs leading-relaxed text-muted-foreground">
-                <span className="font-semibold text-foreground block mb-1">Adjudication Executive Brief:</span>
+                <span className="font-semibold text-foreground block mb-1">Claim Evaluation Summary:</span>
                 <Typewriter text={review.summary} delayMs={300} />
               </div>
             </div>
@@ -181,16 +182,16 @@ export function ProcessStep(props: Props) {
           </div>
         ))}
 
-      {/* Adjudication Breakdown & 6-Point Audit Cards */}
+      {/* Payout Breakdown & 6-Point Policy Cards */}
       <div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr]">
-        {/* Adjudication Table */}
+        {/* Payout Breakdown Table */}
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="glil-card-header rounded-t-xl pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-bold tracking-tight">Adjudication Breakdown</CardTitle>
+                <CardTitle className="text-base font-bold tracking-tight">Payout Breakdown</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  {AGENT.ADJUDICATION}: Itemized deduction calculations &amp; plan limit caps
+                  {AGENT.ADJUDICATION}: Itemized calculation &amp; plan limit caps
                 </CardDescription>
               </div>
               <Badge variant="outline" className="text-xs font-mono">ACPS Policy Schedule</Badge>
@@ -252,12 +253,12 @@ export function ProcessStep(props: Props) {
           </CardContent>
         </Card>
 
-        {/* 6-Point Compliance & Audit Checklist */}
+        {/* 6-Point Compliance & Policy Shield */}
         <Card className="border-border/80 shadow-sm">
           <CardHeader className="glil-card-header rounded-t-xl pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-bold tracking-tight">Compliance &amp; Anti-Fraud Audit</CardTitle>
+                <CardTitle className="text-base font-bold tracking-tight">Policy Checks &amp; Anti-Fraud Shield</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
                   {AGENT.AUDIT}: 6-Point Automated Validation Shield
                 </CardDescription>
@@ -305,12 +306,12 @@ export function ProcessStep(props: Props) {
         </Card>
       </div>
 
-      {/* Post-Audit & Final Sign-Off Action (Action Item 10: ACPS Submit) */}
+      {/* Final Sign-Off & Submission */}
       <Card className="border-border/80 shadow-sm">
         <CardHeader className="glil-card-header rounded-t-xl pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base font-bold tracking-tight">Post-Audit Sign-Off &amp; ACPS Submit</CardTitle>
+              <CardTitle className="text-base font-bold tracking-tight">Final Sign-Off &amp; Submission</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
                 Verified by Claim Officer <span className="font-semibold text-foreground">{reviewedBy}</span>.{' '}
                 {review.single_step_approval
@@ -321,7 +322,7 @@ export function ProcessStep(props: Props) {
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-xs gap-1 border-indigo-200 bg-indigo-50 text-indigo-700">
-              <FileCheck className="size-3" /> Ready for ACPS Submit
+              <FileCheck className="size-3" /> Ready for Final Submit
             </Badge>
           </div>
         </CardHeader>
@@ -330,11 +331,11 @@ export function ProcessStep(props: Props) {
           <div className="text-xs text-muted-foreground">
             {!canSignOff ? (
               <span className="text-amber-800 font-semibold">
-                ⚠️ To sign off, switch &quot;Acting as&quot; in the top bar to the Post-Audit user (Imran Chowdhury).
+                ⚠️ To approve, switch &quot;Acting as&quot; in the top bar to Senior Auditor (Imran Chowdhury).
               </span>
             ) : (
               <span className="text-emerald-700 font-semibold">
-                ✓ Authorized Post-Auditor: Ready to approve and submit transaction to ACPS.
+                ✓ Authorized Senior Auditor: Ready to approve and submit transaction.
               </span>
             )}
           </div>
@@ -350,7 +351,7 @@ export function ProcessStep(props: Props) {
               className="bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
             >
               <Send className="size-4" />
-              {busy ? 'Submitting to ACPS…' : 'Sign Off & ACPS Submit'}
+              {busy ? 'Approving & Submitting…' : 'Approve & Submit Claim'}
             </Button>
           </div>
         </CardFooter>

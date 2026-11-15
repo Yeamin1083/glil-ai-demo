@@ -42,15 +42,15 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Presentation Quick-Select Bar */}
-      {/* <div className="rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-50/90 via-orange-50/70 to-amber-50/90 p-4 shadow-sm">
+      <div className="rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-50/90 via-orange-50/70 to-amber-50/90 p-4 shadow-xs">
         <div className="flex items-center gap-2 mb-2">
           <Zap className="size-4 text-[var(--glil-orange)]" />
           <span className="text-xs font-bold uppercase tracking-wider text-amber-950">
-            Presentation Demo Presets (1-Click Sample Pre-load)
+            Quick Demo Presets (1-Click Sample Pre-load)
           </span>
         </div>
         <p className="text-xs text-amber-900/80 mb-3">
-          Click any scenario below to automatically load the member profile and verified sample claim documents for your demonstration:
+          Click any preset scenario below to load the member profile and verified sample claim documents:
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -59,7 +59,7 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
             size="sm"
             disabled={loadingSample || busy}
             onClick={() => loadScenario('DEMO-7049-0001', '/samples/sample_claim_rahim.pdf', 'prescription_receipt_rahim.pdf')}
-            className="h-8 border-amber-300 bg-white/80 hover:bg-white text-xs font-medium gap-1.5 shadow-2xs"
+            className="h-8 border-amber-300 bg-white/90 hover:bg-white text-xs font-medium gap-1.5 shadow-2xs cursor-pointer"
           >
             <Sparkles className="size-3 text-[var(--glil-orange)]" />
             <span>Scenario 1: Clean Claim (Rahim Uddin · Instant STP ≤ ৳3,000)</span>
@@ -71,10 +71,10 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
             size="sm"
             disabled={loadingSample || busy}
             onClick={() => loadScenario('DEMO-7049-0003', '/samples/sample_claim_tanvir.pdf', 'spectacles_bill_tanvir.pdf')}
-            className="h-8 border-amber-300 bg-white/80 hover:bg-white text-xs font-medium gap-1.5 shadow-2xs"
+            className="h-8 border-amber-300 bg-white/90 hover:bg-white text-xs font-medium gap-1.5 shadow-2xs cursor-pointer"
           >
             <Sparkles className="size-3 text-indigo-600" />
-            <span>Scenario 2: Plan Limit & Deductions (Tanvir Hasan · Optical Cap)</span>
+            <span>Scenario 2: Plan Limit &amp; Deductions (Tanvir Hasan · Optical Cap)</span>
           </Button>
 
           <Button
@@ -83,20 +83,20 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
             size="sm"
             disabled={loadingSample || busy}
             onClick={() => loadScenario('DEMO-7049-0002', '/samples/sample_claim_rahim.pdf', 'spouse_claim_nasrin.pdf')}
-            className="h-8 border-amber-300 bg-white/80 hover:bg-white text-xs font-medium gap-1.5 shadow-2xs"
+            className="h-8 border-amber-300 bg-white/90 hover:bg-white text-xs font-medium gap-1.5 shadow-2xs cursor-pointer"
           >
             <Sparkles className="size-3 text-emerald-600" />
             <span>Scenario 3: Low Limit Exhaustion (Nasrin Akter · Spouse)</span>
           </Button>
         </div>
-      </div> */}
+      </div>
 
       {/* Main Intake Card */}
       <Card className="border-border shadow-sm">
         <CardHeader className="glil-card-header rounded-t-xl pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-bold tracking-tight">Intimate a Group Health Claim</CardTitle>
+              <CardTitle className="text-xl font-bold tracking-tight">New Group Health Claim</CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
                 Step 1: Select the enrolled member and upload original claim documents. The intake engine will extract all clinical and financial fields for the Claim Officer.
               </CardDescription>
@@ -226,7 +226,7 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
             onClick={() => file && onSubmit(file, memberCode)}
             className="bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
           >
-            {busy ? 'Running AI Intake…' : 'Intimate Claim'} <ChevronRight className="size-4" />
+            {busy ? 'Running AI Intake…' : 'Start AI Intake'} <ChevronRight className="size-4" />
           </Button>
         </CardFooter>
       </Card>
