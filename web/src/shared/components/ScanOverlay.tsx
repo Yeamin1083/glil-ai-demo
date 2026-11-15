@@ -46,11 +46,11 @@ export function ScanOverlay({ file, title, steps }: Props) {
         {/* High-tech HUD Overlay Elements */}
         <div className="absolute top-4 left-4 flex items-center gap-2 rounded-md bg-slate-950/80 px-2.5 py-1 text-[11px] font-mono text-emerald-400 backdrop-blur border border-emerald-500/30">
           <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
-          <span>OCR_VISION_ENGINE // LIVE_INSPECTION</span>
+          <span>Reading the document…</span>
         </div>
 
         <div className="absolute bottom-4 right-4 rounded-md bg-slate-950/80 px-2.5 py-1 text-[11px] font-mono text-slate-300 backdrop-blur border border-slate-700">
-          DOCUMENT: {file.name.toUpperCase()} ({(file.size / 1024).toFixed(0)} KB)
+          File: {file.name} ({(file.size / 1024).toFixed(0)} KB)
         </div>
       </div>
 
@@ -59,14 +59,14 @@ export function ScanOverlay({ file, title, steps }: Props) {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Badge className="bg-[var(--glil-orange)] text-white gap-1 hover:bg-[var(--glil-orange)]">
-              <Sparkles className="size-3" /> ACPS AI Pipeline
+              <Sparkles className="size-3" /> ACPS AI
             </Badge>
             <span className="text-xs font-mono text-muted-foreground">{progress}% Complete</span>
           </div>
 
           <h2 className="text-2xl font-bold tracking-tight text-foreground shimmer-text">{title}</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Gemini Multimodal Vision + ACPS Deterministic Rule Engine
+            This only takes a few seconds.
           </p>
 
           {/* Progress Line */}
@@ -84,15 +84,15 @@ export function ScanOverlay({ file, title, steps }: Props) {
             <div className="flex justify-center mb-1">
               <Bot className="size-4 text-[var(--glil-orange)]" />
             </div>
-            <div className="text-[11px] font-semibold">Intake OCR</div>
-            <div className="text-[10px] text-emerald-600 font-medium">Processing</div>
+            <div className="text-[11px] font-semibold">Reading</div>
+            <div className="text-[10px] text-emerald-600 font-medium">Working</div>
           </div>
 
           <div className="rounded-lg border bg-muted/40 p-2.5 text-center">
             <div className="flex justify-center mb-1">
               <Layers className="size-4 text-indigo-600" />
             </div>
-            <div className="text-[11px] font-semibold">Rules Engine</div>
+            <div className="text-[11px] font-semibold">Calculating</div>
             <div className="text-[10px] text-muted-foreground font-medium">Ready</div>
           </div>
 
@@ -100,7 +100,7 @@ export function ScanOverlay({ file, title, steps }: Props) {
             <div className="flex justify-center mb-1">
               <ShieldCheck className="size-4 text-emerald-600" />
             </div>
-            <div className="text-[11px] font-semibold">Policy Shield</div>
+            <div className="text-[11px] font-semibold">Checking</div>
             <div className="text-[10px] text-muted-foreground font-medium">Ready</div>
           </div>
         </div>

@@ -12,9 +12,9 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
   const samePayable = officer.payable_amount === review.total_payable
   const verdict = sameStatus
     ? samePayable
-      ? '100% Agreement (Status & Payable Match)'
-      : 'Same Status, Minor Variance in Payable'
-    : 'Variance Detected Between Human & AI'
+      ? 'AI and officer agree'
+      : 'Same decision, different amount'
+    : 'AI and officer differ'
 
   return (
     <Card className="border-border/80 shadow-sm overflow-hidden">
@@ -24,11 +24,11 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
             <div className="flex items-center gap-2">
               <Scale className="size-4 text-[var(--glil-orange)]" />
               <CardTitle className="text-base font-bold tracking-tight">
-                Benchmark: AI Recommendation vs. Human Claim Officer
+                AI vs. Claim Officer
               </CardTitle>
             </div>
             <CardDescription className="text-xs text-muted-foreground mt-0.5">
-              Comparison with the actual historic decision recorded by ACPS Claim Officers for this claim.
+              What the AI suggested, next to what the officer actually decided.
             </CardDescription>
           </div>
           <CardAction>
@@ -54,9 +54,9 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
           <div className="rounded-xl border bg-muted/30 p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <User className="size-3.5" /> Human Claim Officer
+                <User className="size-3.5" /> Claim Officer
               </span>
-              <Badge variant="outline" className="text-[10px] font-mono">ACPS Live Record</Badge>
+              <Badge variant="outline" className="text-[10px] font-mono">ACPS record</Badge>
             </div>
             <div className={cn('text-xl font-bold tracking-tight', TONE_TEXT[STATUS_TONE[officer.status]])}>
               {STATUS_LABEL[officer.status] || humanize(officer.status)}
@@ -81,9 +81,9 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
           <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50/40 via-background to-blue-50/30 p-4 space-y-2 relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-[var(--glil-orange)] flex items-center gap-1.5">
-                <Sparkles className="size-3.5" /> AI Recommendation
+                <Sparkles className="size-3.5" /> AI Suggestion
               </span>
-              <Badge className="bg-[var(--glil-orange)] text-white text-[10px]">Gemini + Policy Rules</Badge>
+              <Badge className="bg-[var(--glil-orange)] text-white text-[10px]">AI + plan rules</Badge>
             </div>
             <div className={cn('text-xl font-bold tracking-tight', TONE_TEXT[STATUS_TONE[review.status]])}>
               {STATUS_LABEL[review.status] || humanize(review.status)}
@@ -99,7 +99,7 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
               </p>
             )}
             <div className="pt-2 border-t mt-3 flex justify-between items-baseline text-xs">
-              <span className="text-muted-foreground">AI Calculated Payable:</span>
+              <span className="text-muted-foreground">AI payout:</span>
               <span className="font-bold text-sm text-foreground">{bdt(review.total_payable)} <span className="text-xs font-normal text-muted-foreground">of {bdt(review.total_claimed)}</span></span>
             </div>
           </div>
@@ -109,13 +109,13 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
         {officer.expenses.length > 0 && (
           <div className="space-y-2 pt-2 border-t">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Officer&apos;s Recorded Expense Lines (ACPS Database)
+              Items the officer recorded
             </span>
             <div className="rounded-lg border overflow-hidden">
               <Table>
                 <TableHeader className="bg-muted/40 text-xs">
                   <TableRow>
-                    <TableHead className="pl-3">Expense Head</TableHead>
+                    <TableHead className="pl-3">Expense</TableHead>
                     <TableHead className="text-right">Claimed (৳)</TableHead>
                     <TableHead className="text-right">Approved (৳)</TableHead>
                     <TableHead className="pr-3 pl-4">Officer Remarks</TableHead>

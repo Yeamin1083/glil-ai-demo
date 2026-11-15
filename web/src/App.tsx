@@ -12,6 +12,7 @@ import { ProcessStep } from './features/claim/components/ProcessStep'
 import { ReviewStep } from './features/claim/components/ReviewStep'
 import { fromExtraction, toClaimIn, type ClaimForm, type FormField } from './features/claim/form'
 import type { Confidence, Extraction, Fixtures, OracleRecord, Review } from './features/claim/types'
+import { TEST_CLAIMS } from './features/claim/testClaims'
 import { HrPendingClaimsPage, type HrPendingClaim } from './features/hr/HrPendingClaimsPage'
 import { WelcomePage } from './features/welcome/WelcomePage'
 import { ScanOverlay } from './shared/components/ScanOverlay'
@@ -36,8 +37,8 @@ interface NavTab {
 
 const NAV_TABS: NavTab[] = [
   { id: 'welcome', label: 'Welcome', icon: Home },
-  { id: 'claims', label: 'Claims Flow', icon: FileText },
-  { id: 'hr', label: 'HR Pending', icon: Building2, badge: 3 },
+  { id: 'claims', label: 'Claims', icon: FileText },
+  { id: 'hr', label: 'HR Portal', icon: Building2, badge: TEST_CLAIMS.length },
 ]
 
 export default function App() {
@@ -48,6 +49,7 @@ export default function App() {
   const [step, setStep] = useState<Step>(STEP.INTIMATION)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hrApproved, setHrApproved] = useState(false)
   const [scanning, setScanning] = useState<{ file: File; agent: 'extract' | 'review' } | null>(null)
 
   const [file, setFile] = useState<File | null>(null)
@@ -79,42 +81,44 @@ export default function App() {
     setError(null)
     try {
       await task()
+      return true
     } catch (e) {
       setError((e as Error).message)
+      return false
     } finally {
       setBusy(false)
       setScanning(null)
     }
   }
 
-  const intimate = (doc: File, memberCode: string) =>
+  const intimate = (doc: File, memberCode: string, hrNumber?: string) =>
     run(async () => {
       setScanning({ file: doc, agent: 'extract' })
       const [result] = await Promise.all([extractClaim(doc), pause(MIN_SCAN_MS)])
       const known = fixtures?.samples.find((s) => s.member_code === memberCode)
       const prefilled = fromExtraction(result.extraction, memberCode, known?.reference_date)
       setFile(doc)
-      setIntimationNumber(result.intimation_number)
+      setIntimationNumber(hrNumber ?? result.intimation_number)
+      setHrApproved(!!hrNumber)
       setExtraction(result.extraction)
       setForm(prefilled.form)
       setConfidence(prefilled.confidence)
       setStep(STEP.REVIEW)
     })
 
-  // Step 2: HR Endorsement flow - skips Intimation page and enters Review step directly
-  const handleHrApprove = (claim: HrPendingClaim, claimFile: File) => {
-    setFile(claimFile)
-    setIntimationNumber(claim.intimationNumber)
-    setExtraction(claim.extraction)
-    const prefilled = fromExtraction(claim.extraction, claim.memberCode)
-    setForm(prefilled.form)
-    setConfidence(prefilled.confidence)
+  // HR approval sends the claim's real document straight to the Claim Officer
+  const handleHrApprove = async (claim: HrPendingClaim, claimFile: File) => {
     if (officer.role === 'HR_ADMIN') {
       const claimOfficer = users.find((u) => u.role === 'CLAIMS_OFFICER')
       if (claimOfficer) setOfficerId(claimOfficer.id)
     }
     setStep(STEP.REVIEW)
     setView('claims')
+    // ponytail: if reading fails, go back to the HR list instead of dropping the user on the upload form
+    if (!(await intimate(claimFile, claim.memberCode, claim.number))) {
+      setStep(STEP.INTIMATION)
+      setView('hr')
+    }
   }
 
   const sendToProcessing = () =>
@@ -139,6 +143,7 @@ export default function App() {
     setForm(null)
     setReview(null)
     setRecord(null)
+    setHrApproved(false)
     setStep(STEP.INTIMATION)
     loadFixtures()
   }
@@ -153,7 +158,7 @@ export default function App() {
             type="button"
             onClick={() => setView('welcome')}
             className="flex items-center gap-3 shrink-0 text-left hover:opacity-90 transition-opacity cursor-pointer"
-            title="Return to Welcome Screen"
+            title="Back to home"
           >
             <img src="/guardian.svg" alt="Guardian Life Insurance" className="h-9 w-auto shrink-0" />
             <div className="border-l pl-3 leading-tight hidden sm:block">
@@ -217,13 +222,13 @@ export default function App() {
           {/* Persona Switcher ("Acting as") */}
           <div className="flex shrink-0 items-center gap-2">
             <div className="hidden lg:flex flex-col text-right">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Active Persona</span>
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Signed in as</span>
               <span className="text-xs font-semibold text-slate-800">{ROLE_LABEL[officer?.role || 'CLAIMS_OFFICER']}</span>
             </div>
 
             <Select value={officer?.id ?? ''} onValueChange={setOfficerId}>
               <SelectTrigger className="w-52 h-9 text-xs font-medium bg-slate-50 border-slate-300">
-                <SelectValue placeholder="Select acting user" />
+                <SelectValue placeholder="Choose a user" />
               </SelectTrigger>
               <SelectContent>
                 {users.map((u) => (
@@ -256,20 +261,20 @@ export default function App() {
 
         {/* Claims Flow Step Progress Header (Apple Style) */}
         {view === 'claims' && (
-          <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-2xs backdrop-blur animate-in fade-in duration-300">
+          <div className="sticky top-20 z-20 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-xs backdrop-blur animate-in fade-in duration-300">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold tracking-tight text-slate-900">Claims Processing Pipeline</h2>
+                <h2 className="text-sm font-bold tracking-tight text-slate-900">New Claim</h2>
                 <Badge variant="outline" className="text-[10px] border-orange-200 bg-orange-50 text-[var(--glil-orange)] font-mono">
                   Step {step + 1} of 4
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Autonomous claims intake, verification, policy checks, and core ACPS submission.
+                Upload, check the details, decide, and finish.
               </p>
             </div>
 
-            <ol className="flex flex-wrap items-center gap-2" aria-label="Claims Flow Progress">
+            <ol className="flex flex-wrap items-center gap-2" aria-label="Claim steps">
               {Object.entries(STEP_LABEL).map(([key, label]) => {
                 const n = Number(key)
                 const Icon = STEP_ICONS[n] || FileText
@@ -323,7 +328,7 @@ export default function App() {
             <div className="flex items-center justify-center p-16 text-xs text-muted-foreground">
               <div className="flex flex-col items-center gap-2">
                 <div className="size-8 rounded-full border-2 border-[var(--glil-orange)] border-t-transparent animate-spin" />
-                <span>Connecting to ACPS Claim Gateway…</span>
+                <span>Loading…</span>
               </div>
             </div>
           ) : scanning ? (
@@ -331,8 +336,8 @@ export default function App() {
               file={scanning.file}
               title={
                 scanning.agent === 'extract'
-                  ? 'Reading Claim Documents...'
-                  : 'Checking Policy Rules & Calculating Settlement...'
+                  ? 'Reading your documents...'
+                  : 'Checking the plan and working out the payout...'
               }
               steps={scanning.agent === 'extract' ? EXTRACT_STEPS : REVIEW_STEPS}
             />
@@ -342,6 +347,7 @@ export default function App() {
             <ReviewStep
               file={file}
               intimationNumber={intimationNumber}
+              hrApproved={hrApproved}
               extraction={extraction}
               member={member}
               form={form}

@@ -34,7 +34,7 @@ export function LimitHeads() {
   return (
     <>
       <TableHead className="border-l text-right">Limit</TableHead>
-      <TableHead className="text-right">Consumed</TableHead>
+      <TableHead className="text-right">Used</TableHead>
       <TableHead className="border-r text-right">Remaining</TableHead>
     </>
   )

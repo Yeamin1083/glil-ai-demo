@@ -4,7 +4,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { bdt } from '@/shared/format'
+import { loadTestClaimFile, TEST_CLAIMS } from '../testClaims'
 import type { Member } from '../types'
 import { MemberPicker } from './MemberPicker'
 
@@ -18,19 +20,19 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
   const [memberCode, setMemberCode] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [loadingSample, setLoadingSample] = useState(false)
+  const [exampleError, setExampleError] = useState<string | null>(null)
   const member = members.find((m) => m.code === memberCode)
 
-  // 1-Click Demo Scenario Loader for live presentation
-  const loadScenario = async (targetCode: string, samplePdfPath: string, fileName: string) => {
+  // the example list uses real claims; the demo members stand in for the real employees
+  const loadExample = async (index: string) => {
+    const i = Number(index)
     try {
       setLoadingSample(true)
-      setMemberCode(targetCode)
-      const res = await fetch(samplePdfPath)
-      const blob = await res.blob()
-      const demoFile = new File([blob], fileName, { type: 'application/pdf' })
-      setFile(demoFile)
-    } catch (err) {
-      console.error('Failed to load sample demo file:', err)
+      setFile(await loadTestClaimFile(TEST_CLAIMS[i]))
+      setMemberCode(TEST_CLAIMS[i].memberCode)
+      setExampleError(null)
+    } catch (e) {
+      setExampleError((e as Error).message)
     } finally {
       setLoadingSample(false)
     }
@@ -41,54 +43,24 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      {/* Presentation Quick-Select Bar */}
-      <div className="rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-50/90 via-orange-50/70 to-amber-50/90 p-4 shadow-xs">
+      <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 p-4">
         <div className="flex items-center gap-2 mb-2">
           <Zap className="size-4 text-[var(--glil-orange)]" />
-          <span className="text-xs font-bold uppercase tracking-wider text-amber-950">
-            Quick Demo Presets (1-Click Sample Pre-load)
-          </span>
+          <span className="text-xs font-bold uppercase tracking-wider text-amber-950">Try an example</span>
         </div>
-        <p className="text-xs text-amber-900/80 mb-3">
-          Click any preset scenario below to load the member profile and verified sample claim documents:
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={loadingSample || busy}
-            onClick={() => loadScenario('DEMO-7049-0001', '/samples/sample_claim_rahim.pdf', 'prescription_receipt_rahim.pdf')}
-            className="h-8 border-amber-300 bg-white/90 hover:bg-white text-xs font-medium gap-1.5 shadow-2xs cursor-pointer"
-          >
-            <Sparkles className="size-3 text-[var(--glil-orange)]" />
-            <span>Scenario 1: Clean Claim (Rahim Uddin · Instant STP ≤ ৳3,000)</span>
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={loadingSample || busy}
-            onClick={() => loadScenario('DEMO-7049-0003', '/samples/sample_claim_tanvir.pdf', 'spectacles_bill_tanvir.pdf')}
-            className="h-8 border-amber-300 bg-white/90 hover:bg-white text-xs font-medium gap-1.5 shadow-2xs cursor-pointer"
-          >
-            <Sparkles className="size-3 text-indigo-600" />
-            <span>Scenario 2: Plan Limit &amp; Deductions (Tanvir Hasan · Optical Cap)</span>
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={loadingSample || busy}
-            onClick={() => loadScenario('DEMO-7049-0002', '/samples/sample_claim_rahim.pdf', 'spouse_claim_nasrin.pdf')}
-            className="h-8 border-amber-300 bg-white/90 hover:bg-white text-xs font-medium gap-1.5 shadow-2xs cursor-pointer"
-          >
-            <Sparkles className="size-3 text-emerald-600" />
-            <span>Scenario 3: Low Limit Exhaustion (Nasrin Akter · Spouse)</span>
-          </Button>
-        </div>
+        <Select disabled={loadingSample || busy || members.length === 0} onValueChange={loadExample}>
+          <SelectTrigger className="bg-white text-xs">
+            <SelectValue placeholder="Pick a real claim to fill in a member and documents" />
+          </SelectTrigger>
+          <SelectContent>
+            {TEST_CLAIMS.map((c, i) => (
+              <SelectItem key={c.number} value={String(i)} className="text-xs">
+                {c.number} · {c.label} · {c.result}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {exampleError && <p className="mt-2 text-xs text-red-700">{exampleError}</p>}
       </div>
 
       {/* Main Intake Card */}
@@ -96,13 +68,13 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
         <CardHeader className="glil-card-header rounded-t-xl pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-bold tracking-tight">New Group Health Claim</CardTitle>
+              <CardTitle className="text-xl font-bold tracking-tight">New Claim</CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                Step 1: Select the enrolled member and upload original claim documents. The intake engine will extract all clinical and financial fields for the Claim Officer.
+                Choose the member and upload the bills. We will fill in the details for you.
               </CardDescription>
             </div>
             <Badge variant="outline" className="gap-1 border-orange-200 bg-orange-50 text-[var(--glil-orange)]">
-              <Sparkles className="size-3" /> Claim Officer Intake
+              <Sparkles className="size-3" /> Step 1
             </Badge>
           </div>
         </CardHeader>
@@ -111,7 +83,7 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
           {/* Member Picker */}
           <div className="grid gap-2">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <User className="size-3.5" /> Enrolled Group Member
+              <User className="size-3.5" /> Member
             </Label>
             <MemberPicker members={members} value={memberCode} onChange={setMemberCode} />
           </div>
@@ -133,7 +105,7 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
                 <div className="flex items-center gap-2">
                   <Badge variant={member.is_active ? 'secondary' : 'destructive'} className="gap-1 text-xs">
                     <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    {member.is_active ? 'Active Policy' : 'Inactive'}
+                    {member.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                   <Badge variant="outline" className="text-xs font-medium">
                     Plan {member.plan.plan_name} (OPD {bdt(member.plan.opd_limit)})
@@ -144,7 +116,7 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
               {/* Limit Gauge */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Remaining OPD Limit</span>
+                  <span className="text-muted-foreground">Limit left</span>
                   <span className="font-semibold text-foreground">
                     <span className="text-emerald-700 font-bold">{bdt(member.limit_remaining)}</span> remaining ({limitPct}%)
                   </span>
@@ -156,8 +128,8 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
                   />
                 </div>
                 <div className="flex justify-between text-[11px] text-muted-foreground">
-                  <span>Policy Cycle: {member.plan.cycle_start} to {member.plan.cycle_end}</span>
-                  <span>Used to date: {bdt(limitUsed)}</span>
+                  <span>Plan year: {member.plan.cycle_start} to {member.plan.cycle_end}</span>
+                  <span>Used so far: {bdt(limitUsed)}</span>
                 </div>
               </div>
             </div>
@@ -166,7 +138,7 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
           {/* Claim Documents Upload Dropzone */}
           <div className="grid gap-2">
             <Label htmlFor="claim-documents" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-              <span>Original Claim Documents</span>
+              <span>Claim documents</span>
               <span className="text-[11px] font-normal lowercase text-muted-foreground">PDF, JPEG, or PNG</span>
             </Label>
 
@@ -185,23 +157,23 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
                   </div>
                   <span className="text-sm font-semibold text-emerald-950 mt-1">{file.name}</span>
                   <Badge variant="outline" className="border-emerald-300 text-emerald-800 text-[11px]">
-                    {(file.size / 1024).toFixed(0)} KB · Ready for AI Intake
+                    {(file.size / 1024).toFixed(0)} KB · Ready
                   </Badge>
-                  <span className="text-xs text-muted-foreground mt-1">Click to replace document</span>
+                  <span className="text-xs text-muted-foreground mt-1">Click to change the file</span>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2">
                   <div className="grid size-11 place-items-center rounded-full bg-slate-100 text-slate-500">
                     <Upload className="size-5" />
                   </div>
-                  <span className="text-sm font-semibold text-foreground">Upload Claim Files (Prescription & Receipts)</span>
+                  <span className="text-sm font-semibold text-foreground">Upload your bills and prescription</span>
                   <span className="text-xs text-muted-foreground max-w-md">
-                    Drag and drop or browse printed medical receipts, money memos, and doctor prescriptions.
+                    Drag files here or click to choose.
                   </span>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Doctor Prescription</Badge>
-                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Cash Memo</Badge>
-                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Diagnostic Bill</Badge>
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Prescription</Badge>
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Receipt</Badge>
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Test bill</Badge>
                   </div>
                 </div>
               )}
@@ -218,7 +190,7 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
 
         <CardFooter className="flex items-center justify-between border-t bg-muted/20 px-6 py-4">
           <p className="text-xs text-muted-foreground">
-            {!member ? 'Select a member to proceed.' : !file ? 'Attach claim document to proceed.' : 'Ready for AI intake.'}
+            {!member ? 'Choose a member to continue.' : !file ? 'Add a file to continue.' : 'Ready.'}
           </p>
           <Button
             size="lg"
@@ -226,7 +198,7 @@ export function IntimationStep({ members, busy, onSubmit }: Props) {
             onClick={() => file && onSubmit(file, memberCode)}
             className="bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
           >
-            {busy ? 'Running AI Intake…' : 'Start AI Intake'} <ChevronRight className="size-4" />
+            {busy ? 'Reading…' : 'Read My Documents'} <ChevronRight className="size-4" />
           </Button>
         </CardFooter>
       </Card>

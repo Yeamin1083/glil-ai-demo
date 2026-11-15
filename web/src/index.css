@@ -225,17 +225,11 @@
     font-family: 'Caveat', 'Snell Roundhand', 'Brush Script MT', 'Dancing Script', cursive;
   }
 
-  /* SVG cursive handwriting draw stroke effect */
-  .apple-draw-text {
-    font-family: 'Caveat', 'Snell Roundhand', 'Brush Script MT', 'Dancing Script', cursive;
-    font-weight: 700;
-    stroke: #f37021;
-    stroke-width: 2.2px;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-dasharray: 900;
-    stroke-dashoffset: 900;
-    animation: apple-draw-stroke 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  /* Mac-style hello: script writes in left to right, holds, fades */
+  .hello-word {
+    font-family: 'Sacramento', 'Snell Roundhand', cursive;
+    color: #0f172a;
+    animation: hello-write 2.6s ease-in-out forwards;
   }
 
   .apple-card-hover {
@@ -283,23 +277,11 @@
   0% { transform: scale(0.95); opacity: 0.9; }
   100% { transform: scale(1.35); opacity: 0; }
 }
-@keyframes apple-draw-stroke {
-  0% {
-    stroke-dashoffset: 900;
-    fill: transparent;
-    opacity: 0.95;
-  }
-  60% {
-    stroke-dashoffset: 0;
-    fill: transparent;
-    opacity: 1;
-  }
-  100% {
-    stroke-dashoffset: 0;
-    fill: #0f172a;
-    stroke: rgba(243, 112, 33, 0.4);
-    opacity: 1;
-  }
+@keyframes hello-write {
+  0% { clip-path: inset(-20% 100% -20% 0); opacity: 1; }
+  60% { clip-path: inset(-20% 0 -20% 0); opacity: 1; }
+  85% { clip-path: inset(-20% 0 -20% 0); opacity: 1; }
+  100% { clip-path: inset(-20% 0 -20% 0); opacity: 0; }
 }
 @keyframes apple-pulse {
   0% { transform: scale(0.95); opacity: 0.75; }

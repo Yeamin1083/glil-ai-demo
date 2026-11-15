@@ -9,7 +9,7 @@ export type Role = (typeof ROLE)[keyof typeof ROLE]
 export const ROLE_LABEL: Record<Role, string> = {
   HR_ADMIN: 'Corporate HR',
   CLAIMS_OFFICER: 'Claim Officer',
-  POST_AUDITOR: 'Senior Auditor',
+  POST_AUDITOR: 'Final Approver',
 }
 
 export const STEP = {
@@ -21,34 +21,34 @@ export const STEP = {
 export type Step = (typeof STEP)[keyof typeof STEP]
 
 export const STEP_LABEL: Record<Step, string> = {
-  0: 'Claim Intake',
-  1: 'Officer Review',
-  2: 'Verify & Decide',
-  3: 'Final Approval',
+  0: 'Upload',
+  1: 'Check Details',
+  2: 'Decision',
+  3: 'Done',
 }
 
 // the three AI processing subsystems, named for the claims job each one does
 export const AGENT = {
-  INTAKE: 'Intake Processing',
-  ADJUDICATION: 'Rules & Calculation Engine',
-  AUDIT: 'Policy Shield',
+  INTAKE: 'Reading documents',
+  ADJUDICATION: 'Payout calculation',
+  AUDIT: 'Policy checks',
 } as const
 
 // what each subsystem is doing, shown while it runs
 export const EXTRACT_STEPS = [
   'Reading the documents',
-  'Finding bills, money receipts and prescriptions',
-  'Reading patient, physician and treatment dates',
-  'Mapping bill lines to plan expense types',
-  'Reconciling totals with the claimed amount',
+  'Finding bills, receipts and prescriptions',
+  'Finding the patient, doctor and dates',
+  'Sorting bill lines by type',
+  'Checking totals against the claimed amount',
 ]
 export const REVIEW_STEPS = [
-  'Checking itemized expenses against bills',
-  'Matching medicines against prescription',
-  'Applying OPD plan limits and co-pays',
-  'Validating dates, patient identity & claim history',
-  'Checking policy coverage & exclusions',
-  'Calculating settlement decision & payout',
+  'Checking each bill line',
+  'Matching medicines to the prescription',
+  'Applying plan limits and co-pay',
+  'Checking dates, patient and past claims',
+  'Checking what the plan covers',
+  'Working out the payout',
 ]
 
 // ACPS lookup values (x_claim_* tables), same as ocr-extract
@@ -72,7 +72,7 @@ export const AMOUNT_TOLERANCE_BDT = 50
 export const STATUS_LABEL: Record<string, string> = {
   SETTLED: 'Settle',
   'DOCUMENTS REQUIRED': 'Ask for documents',
-  REGRETTED: 'Review Required',
+  REGRETTED: 'Regret',
 }
 
 export const TONE_TEXT: Record<'good' | 'warn' | 'bad', string> = {
@@ -84,7 +84,7 @@ export const TONE_TEXT: Record<'good' | 'warn' | 'bad', string> = {
 export const STATUS_TONE: Record<string, 'good' | 'warn' | 'bad'> = {
   SETTLED: 'good',
   'DOCUMENTS REQUIRED': 'warn',
-  REGRETTED: 'warn',
+  REGRETTED: 'bad',
 }
 
 // ocr-extract and ACPS both use dd-mm-yyyy

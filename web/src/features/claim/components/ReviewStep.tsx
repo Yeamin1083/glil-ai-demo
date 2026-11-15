@@ -20,6 +20,7 @@ import type { Confidence, Extraction, Member } from '../types'
 interface Props {
   file: File
   intimationNumber: string
+  hrApproved: boolean
   extraction: Extraction
   member: Member
   form: ClaimForm
@@ -52,7 +53,7 @@ function ConfidenceBadge({ level }: { level: Confidence | undefined }) {
 }
 
 export function ReviewStep(props: Props) {
-  const { file, intimationNumber, extraction, member, form, confidence, canSubmit, busy, onChange, onSubmit } = props
+  const { file, intimationNumber, hrApproved, extraction, member, form, confidence, canSubmit, busy, onChange, onSubmit } = props
   const previewUrl = useMemo(() => URL.createObjectURL(file), [file])
   useEffect(() => () => URL.revokeObjectURL(previewUrl), [previewUrl])
 
@@ -77,7 +78,6 @@ export function ReviewStep(props: Props) {
   const claimed = Math.round(Number(form.claimed_amount) || 0)
   const badDates = (['treatment_date', 'reference_date'] as const).some((f) => !DATE_PATTERN.test(form[f]))
   const codes = EXPENSE_CODES[form.claim_type] ?? EXPENSE_CODES.GENERAL
-  const isHrPreIntimated = intimationNumber.includes('HR')
 
   const field = (name: FormField, label: string, opts: { options?: string[]; hint?: string } = {}) => {
     const isHumanEdited = touched.has(name)
@@ -97,10 +97,10 @@ export function ReviewStep(props: Props) {
           <span className="flex items-center gap-1.5">
             <span>{label}</span>
             {fromAi && (
-              <span className="inline-block size-2 rounded-full bg-emerald-500" title="AI Auto-Extracted (Green)" />
+              <span className="inline-block size-2 rounded-full bg-emerald-500" title="Filled by AI (green)" />
             )}
             {isHumanEdited && (
-              <span className="inline-block size-2 rounded-full bg-[var(--glil-orange)]" title="Human Edited (Orange)" />
+              <span className="inline-block size-2 rounded-full bg-[var(--glil-orange)]" title="Edited by you (orange)" />
             )}
           </span>
           <ConfidenceBadge level={confidence[name]} />
@@ -145,7 +145,7 @@ export function ReviewStep(props: Props) {
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-[11px] text-[var(--glil-orange)] hover:underline shrink-0 font-medium"
           >
-            <span>Open in Tab</span> <ExternalLink className="size-3" />
+            <span>Open in new tab</span> <ExternalLink className="size-3" />
           </a>
         </div>
         {file.type === 'application/pdf' ? (
@@ -155,19 +155,19 @@ export function ReviewStep(props: Props) {
         )}
       </Card>
 
-      {/* Right Column: Claim Officer Verification Form */}
+      {/* Right Column: Check the Details Form */}
       <Card className="border-border/80 shadow-sm">
         <CardHeader className="glil-card-header rounded-t-xl pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <CardTitle className="text-xl font-bold tracking-tight">Claim Officer Verification</CardTitle>
+              <CardTitle className="text-xl font-bold tracking-tight">Check the Details</CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                Intimation <span className="font-mono font-semibold text-foreground">{intimationNumber}</span> · Verify clinical & financial fields against source documents.
+                Claim <span className="font-mono font-semibold text-foreground">{intimationNumber}</span> · Check these details against the documents.
               </CardDescription>
             </div>
             <CardAction>
               <Badge variant="outline" className="gap-1.5 border-orange-200 bg-orange-50 text-[var(--glil-orange)] text-xs font-semibold">
-                <Sparkles className="size-3" /> Auto-Extracted for Claim Officer
+                <Sparkles className="size-3" /> Filled in by AI
               </Badge>
             </CardAction>
           </div>
@@ -175,21 +175,21 @@ export function ReviewStep(props: Props) {
 
         <CardContent className="grid gap-5 pt-5">
           {/* HR Pre-Intimation Banner (Step 2) */}
-          {isHrPreIntimated && (
+          {hrApproved && (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 flex items-center justify-between text-xs text-emerald-950 shadow-2xs">
               <div className="flex items-center gap-2.5">
                 <div className="grid size-7 place-items-center rounded-full bg-emerald-600 text-white shrink-0">
                   <CheckCircle2 className="size-4" />
                 </div>
                 <div>
-                  <span className="font-bold block">Pre-Intimated &amp; Corporate HR Approved</span>
+                  <span className="font-bold block">Approved by HR</span>
                   <span className="text-[11px] text-emerald-800">
-                    Bypassed initial intimation: Submitted and endorsed by Corporate HR for member {member.name}.
+                    Sent in and approved by HR for {member.name}.
                   </span>
                 </div>
               </div>
               <Badge className="bg-emerald-700 text-white hover:bg-emerald-700 text-[10px]">
-                HR Verified
+                HR approved
               </Badge>
             </div>
           )}
@@ -197,23 +197,23 @@ export function ReviewStep(props: Props) {
           {/* Visual Legend for Step 3 & Action Item 6 */}
           <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-slate-50 border rounded-lg text-xs">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Field Status Guide:
+              Colour key:
             </span>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5 font-medium text-emerald-800">
                 <span className="size-3 rounded-md bg-emerald-100 border-2 border-emerald-500" />
-                <span>AI Auto-Extracted (Green)</span>
+                <span>Filled by AI (green)</span>
               </div>
               <div className="flex items-center gap-1.5 font-medium text-orange-800">
                 <span className="size-3 rounded-md bg-orange-100 border-2 border-[var(--glil-orange)]" />
-                <span>Human Changed (Orange)</span>
+                <span>Edited by you (orange)</span>
               </div>
             </div>
           </div>
 
           {extraction.summary && (
             <div className="ai-edge rounded-lg border bg-gradient-to-r from-orange-50/20 via-background to-blue-50/20 py-3 pr-4 pl-5 text-xs leading-relaxed text-muted-foreground">
-              <span className="font-semibold text-foreground block mb-0.5">Intake Analysis:</span>
+              <span className="font-semibold text-foreground block mb-0.5">Summary:</span>
               <Typewriter text={extraction.summary} />
             </div>
           )}
@@ -222,18 +222,18 @@ export function ReviewStep(props: Props) {
           <section className="grid gap-4">
             <div className="flex items-center justify-between border-b pb-1.5">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                1. Member &amp; Intimation Details
+                1. Member and claim
               </h3>
               <span className="text-[11px] text-muted-foreground">Policy: Plan {member.plan.plan_name}</span>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <div className="grid gap-1.5">
-                <Label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Member Name &amp; Code</Label>
+                <Label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Member</Label>
                 <Input value={`${member.name} (${member.code})`} disabled className="bg-muted font-medium" />
               </div>
               {field('patient_name', 'Patient Name')}
               {field('claim_type', 'Claim Type', { options: CLAIM_TYPES })}
-              {field('treatment_date', 'Admission / Treatment Date', { hint: 'dd-mm-yyyy' })}
+              {field('treatment_date', 'Treatment Date', { hint: 'dd-mm-yyyy' })}
               {field('reference_date', 'Reference Date', { hint: 'dd-mm-yyyy' })}
               {field('dispatch_number', 'Dispatch / Receipt No.')}
               {field('dispatch_date', 'Dispatch Date', { hint: 'dd-mm-yyyy' })}
@@ -246,15 +246,15 @@ export function ReviewStep(props: Props) {
           <section className="grid gap-4">
             <div className="border-b pb-1.5">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                2. Clinical &amp; Treatment Information
+                2. Treatment
               </h3>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {field('hospital_name', 'Hospital / Clinic')}
-              {field('physician_name', 'Attending Physician')}
-              {field('physician_type', 'Physician Type', { options: PHYSICIAN_TYPES })}
-              {field('diagnosis', 'Clinical Diagnosis')}
-              {field('treatment_type', 'Treatment Protocol', { options: TREATMENT_TYPES })}
+              {field('physician_name', 'Doctor')}
+              {field('physician_type', 'Doctor Type', { options: PHYSICIAN_TYPES })}
+              {field('diagnosis', 'Diagnosis')}
+              {field('treatment_type', 'Treatment Type', { options: TREATMENT_TYPES })}
             </div>
           </section>
 
@@ -262,7 +262,7 @@ export function ReviewStep(props: Props) {
           <section className="grid gap-3">
             <div className="flex items-center justify-between border-b pb-1.5">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                3. Itemized Bill Breakdown &amp; Plan Limits
+                3. Bill items and plan limits
               </h3>
               <Button
                 variant="outline"
@@ -280,7 +280,7 @@ export function ReviewStep(props: Props) {
               <Table>
                 <TableHeader className="bg-muted/60">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead rowSpan={2} className="pl-3 text-xs font-semibold">Expense Head</TableHead>
+                    <TableHead rowSpan={2} className="pl-3 text-xs font-semibold">Expense</TableHead>
                     <LimitGroupHead />
                     <TableHead rowSpan={2} className="w-36 text-right text-xs font-semibold">Claimed (৳)</TableHead>
                     <TableHead rowSpan={2} className="w-10" />
@@ -355,14 +355,14 @@ export function ReviewStep(props: Props) {
                   {form.expenses.length === 0 && (
                     <TableRow className="hover:bg-transparent">
                       <TableCell colSpan={6} className="py-6 text-center text-xs text-muted-foreground">
-                        No expenses yet. Click &quot;Add Row&quot; to add itemized expenses.
+                        No items yet. Click &quot;Add Row&quot;.
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
                 <TableFooter className="bg-muted/60">
                   <TableRow className="hover:bg-transparent">
-                    <TableCell className="pl-3 text-xs font-semibold" colSpan={4}>Reconciled Total</TableCell>
+                    <TableCell className="pl-3 text-xs font-semibold" colSpan={4}>Total</TableCell>
                     <TableCell className="pr-3 text-right font-bold text-sm tabular-nums text-foreground">{bdt(total)}</TableCell>
                     <TableCell />
                   </TableRow>
@@ -375,21 +375,21 @@ export function ReviewStep(props: Props) {
           {total !== claimed && (
             <Alert className="border-amber-300 bg-amber-50/70 text-amber-900">
               <AlertDescription className="text-xs text-amber-900 flex items-center gap-2">
-                <span>⚠️ Note: Itemized lines total {bdt(total)}, while claimed bill amount is {bdt(claimed)}. The verification engine will check this discrepancy.</span>
+                <span>Note: the items add up to {bdt(total)}, but the claimed amount is {bdt(claimed)}. Please check.</span>
               </AlertDescription>
             </Alert>
           )}
 
           {badDates && (
             <Alert variant="destructive">
-              <AlertDescription className="text-xs">All dates must strictly follow dd-mm-yyyy format.</AlertDescription>
+              <AlertDescription className="text-xs">Dates must look like dd-mm-yyyy.</AlertDescription>
             </Alert>
           )}
 
           {extraction.extraction_notes && (
             <Alert className="bg-slate-50 border-slate-200">
               <Info className="size-4 text-[var(--glil-orange)]" />
-              <AlertTitle className="text-xs font-semibold">Intake Notes</AlertTitle>
+              <AlertTitle className="text-xs font-semibold">Notes</AlertTitle>
               <AlertDescription className="text-xs text-muted-foreground mt-1">
                 <ul className="list-disc space-y-1 pl-4">
                   {extraction.extraction_notes
@@ -408,9 +408,9 @@ export function ReviewStep(props: Props) {
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t bg-muted/20 px-6 py-4">
           <div className="text-xs text-muted-foreground">
             {!canSubmit ? (
-              <span className="text-amber-800 font-medium">Switch &quot;Acting as&quot; to a Claim Officer in the top bar to submit.</span>
+              <span className="text-amber-800 font-medium">To continue, pick a Claim Officer from the user list at the top.</span>
             ) : (
-              <span>Verification complete. Ready to evaluate claim and calculate payout.</span>
+              <span>Looks good? Go ahead and check this claim.</span>
             )}
           </div>
           {/* Action button renamed to simple, clear title */}
@@ -420,7 +420,7 @@ export function ReviewStep(props: Props) {
             onClick={onSubmit}
             className="w-full sm:w-auto bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
           >
-            {busy ? 'Evaluating Claim…' : 'Verify & Decide'} <ArrowRight className="size-4" />
+            {busy ? 'Checking…' : 'Check Claim'} <ArrowRight className="size-4" />
           </Button>
         </CardFooter>
       </Card>

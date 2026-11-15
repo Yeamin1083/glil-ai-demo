@@ -1,7 +1,8 @@
 import { AlertTriangle, ArrowLeft, Check, CheckCircle2, FileCheck, Info, Send, ShieldCheck, Sparkles, X, Zap } from 'lucide-react'
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
@@ -32,9 +33,25 @@ function sameClaim(officer: OfficerDecision, review: Review) {
 
 export function ProcessStep(props: Props) {
   const { review, officerDecision, reviewedBy, canSignOff, busy, onBack, onSignOff } = props
+  const [confirming, setConfirming] = useState(false)
   const failedChecks = review.checks.filter((c) => !c.passed)
   const failed = failedChecks.length
   const tone = STATUS_TONE[review.status]
+  // every reason once: the main reason, each failed check, and remarks that say something new
+  const mainReason = review.rejection_reason ? humanize(review.rejection_reason) : null
+  const regretReasons: { title: string; note?: string }[] = []
+  if (mainReason) regretReasons.push({ title: mainReason })
+  failedChecks.forEach((c) => regretReasons.push({ title: `Failed check: ${c.check}`, note: c.detail }))
+  const remarks = new Map<string, string[]>()
+  review.expenses.forEach((e) =>
+    e.remarks.forEach((r) => {
+      const text = r.replace(/^claim regretted:\s*/i, '')
+      if (mainReason && text.toLowerCase() === mainReason.toLowerCase()) return
+      remarks.set(text, [...(remarks.get(text) ?? []), humanize(e.category)])
+    }),
+  )
+  remarks.forEach((cats, text) => regretReasons.push({ title: text, note: `Applies to: ${cats.join(', ')}` }))
+  if (!regretReasons.length) regretReasons.push({ title: 'Something does not match the plan.' })
   const deductionsTotal = review.total_claimed - review.total_payable
 
   return (
@@ -46,27 +63,27 @@ export function ProcessStep(props: Props) {
             <div className="space-y-4 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="border-orange-200 bg-orange-50 text-[var(--glil-orange)] text-xs font-semibold gap-1">
-                  <Sparkles className="size-3" /> AI Decision Verdict
+                  <Sparkles className="size-3" /> AI Decision
                 </Badge>
                 {review.single_step_approval && (
                   <Badge className="bg-emerald-600 text-white text-xs font-semibold gap-1 hover:bg-emerald-600">
-                    <Zap className="size-3" /> Instant STP Qualified (≤ ৳3,000)
+                    <Zap className="size-3" /> Approved right away (≤ ৳3,000)
                   </Badge>
                 )}
               </div>
 
               <div>
-                <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Recommended Decision</p>
+                <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Suggested Decision</p>
                 <div className="flex items-center gap-3 mt-1">
                   <span className={cn('text-3xl sm:text-4xl font-extrabold tracking-tight', TONE_TEXT[tone])}>
                     {STATUS_LABEL[review.status]}
                   </span>
                   {review.status === 'SETTLED' ? (
-                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs">Eligible for Payout</Badge>
+                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs">Can be paid</Badge>
                   ) : review.status === 'DOCUMENTS REQUIRED' ? (
-                    <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">Action Required</Badge>
+                    <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">Documents needed</Badge>
                   ) : (
-                    <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">Review Required</Badge>
+                    <Badge className="bg-red-100 text-red-800 border-red-300 text-xs">Cannot be paid</Badge>
                   )}
                 </div>
               </div>
@@ -76,47 +93,54 @@ export function ProcessStep(props: Props) {
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs space-y-2.5 shadow-2xs">
                   <div className="flex items-center gap-2 font-bold text-emerald-900 text-sm">
                     <CheckCircle2 className="size-4 text-emerald-600" />
-                    <span>All Reasons for Settlement:</span>
+                    <span>Why we can pay:</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-emerald-950 font-medium pt-1">
                     <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
                       <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span><strong>Active Policy &amp; Enrollment:</strong> Member policy is active and within valid coverage cycle.</span>
+                      <span><strong>Plan is active:</strong> The member is covered for these dates.</span>
                     </div>
                     <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
                       <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span><strong>Patient Identity Match:</strong> Patient name on medical invoices matches enrolled policyholder record.</span>
+                      <span><strong>Right patient:</strong> The name on the bills matches the member.</span>
                     </div>
                     <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
                       <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span><strong>Submission Window:</strong> Claim submitted within 60-day deadline from treatment date.</span>
+                      <span><strong>On time:</strong> Sent within 60 days of treatment.</span>
                     </div>
                     <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
                       <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span><strong>Authentic Medical Invoices:</strong> Doctor prescription, cash memos, and itemized bill total verified.</span>
+                      <span><strong>Bills look right:</strong> Prescription, receipts and totals match.</span>
                     </div>
                     <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
                       <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span><strong>Plan Limit Available:</strong> Claim payable within remaining OPD balance ({bdt(review.limit_after)} remaining).</span>
+                      <span><strong>Limit available:</strong> Within the limit left ({bdt(review.limit_after)} left).</span>
                     </div>
                     <div className="flex items-start gap-2 bg-white/80 rounded-lg p-2.5 border border-emerald-200/70 shadow-2xs">
                       <Check className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span><strong>Anti-Fraud Shield:</strong> Zero duplicate or conflicting historical claims found.</span>
+                      <span><strong>No duplicates:</strong> No matching past claims found.</span>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Action Item 2: Rename Regret Claim -> Review Required */}
               {review.status === 'REGRETTED' && (
-                <div className="rounded-xl border border-amber-300 bg-amber-50/80 p-4 text-xs space-y-2 shadow-2xs">
-                  <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
-                    <AlertTriangle className="size-4 text-amber-600" />
-                    <span>Reasons for Review Requirement:</span>
+                <div className="rounded-xl border border-red-200 bg-red-50/70 p-4 text-xs space-y-2 shadow-2xs">
+                  <div className="flex items-center gap-2 font-bold text-red-900 text-sm">
+                    <AlertTriangle className="size-4 text-red-600" />
+                    <span>Why we can&apos;t pay ({regretReasons.length}):</span>
                   </div>
-                  <div className="bg-white/80 rounded-lg p-3 border border-amber-200 text-amber-950 font-medium">
-                    {review.rejection_reason ? humanize(review.rejection_reason) : 'Policy variance detected. Claim requires manual senior claim officer review before sign-off.'}
-                  </div>
+                  <ul className="grid gap-2">
+                    {regretReasons.map((r) => (
+                      <li key={r.title} className="flex items-start gap-2 bg-white/80 rounded-lg p-3 border border-red-200 text-red-950 font-medium">
+                        <X className="size-3.5 text-red-600 shrink-0 mt-0.5" />
+                        <div>
+                          <div>{r.title}</div>
+                          {r.note && <div className="text-[11px] font-normal text-red-900/70 mt-0.5">{r.note}</div>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
@@ -124,16 +148,16 @@ export function ProcessStep(props: Props) {
                 <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs space-y-2 shadow-2xs">
                   <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
                     <Info className="size-4 text-amber-600" />
-                    <span>Reasons for Additional Document Request:</span>
+                    <span>Why we need more documents:</span>
                   </div>
                   <div className="bg-white/80 rounded-lg p-3 border border-amber-200 text-amber-950 font-medium">
-                    {review.required_documents || 'Supporting prescription or original money receipt is missing or unclear.'}
+                    {review.required_documents || 'The prescription or original receipt is missing or unclear.'}
                   </div>
                 </div>
               )}
 
               <div className="rounded-xl border bg-gradient-to-r from-muted/40 to-muted/20 p-4 text-xs leading-relaxed text-muted-foreground">
-                <span className="font-semibold text-foreground block mb-1">Claim Evaluation Summary:</span>
+                <span className="font-semibold text-foreground block mb-1">Summary:</span>
                 <Typewriter text={review.summary} delayMs={300} />
               </div>
             </div>
@@ -141,31 +165,31 @@ export function ProcessStep(props: Props) {
             {/* Financial Totals Column */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-3 lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l lg:pl-6 pt-4 lg:pt-0">
               <div className="rounded-lg border bg-emerald-50/50 border-emerald-200/80 p-3.5">
-                <div className="text-xs font-semibold uppercase tracking-wider text-emerald-800">Approved Payable</div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-emerald-800">We Pay</div>
                 <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 tracking-tight mt-0.5">
                   {bdt(review.total_payable)}
                 </div>
-                <div className="text-[11px] text-emerald-700/80 mt-0.5">Net disburseable to member</div>
+                <div className="text-[11px] text-emerald-700/80 mt-0.5">Paid to the member</div>
               </div>
 
               <div className="rounded-lg border bg-muted/40 p-3">
                 <div className="text-xs text-muted-foreground">Total Claimed</div>
                 <div className="text-lg font-bold text-foreground mt-0.5">{bdt(review.total_claimed)}</div>
-                <div className="text-[11px] text-muted-foreground">Gross invoice sum</div>
+                <div className="text-[11px] text-muted-foreground">Total on the bills</div>
               </div>
 
               <div className="rounded-lg border bg-muted/40 p-3">
-                <div className="text-xs text-muted-foreground">Company Deductions Saved</div>
+                <div className="text-xs text-muted-foreground">Not Covered</div>
                 <div className={cn('text-lg font-bold mt-0.5', deductionsTotal > 0 ? 'text-red-600' : 'text-muted-foreground')}>
                   {deductionsTotal > 0 ? `−${bdt(deductionsTotal)}` : '৳0'}
                 </div>
-                <div className="text-[11px] text-muted-foreground">Policy limits &amp; exclusions</div>
+                <div className="text-[11px] text-muted-foreground">Over the limit or not covered</div>
               </div>
 
               <div className="rounded-lg border bg-muted/40 p-3">
-                <div className="text-xs text-muted-foreground">OPD Balance After Claim</div>
+                <div className="text-xs text-muted-foreground">Limit Left After This Claim</div>
                 <div className="text-lg font-bold text-foreground mt-0.5">{bdt(review.limit_after)}</div>
-                <div className="text-[11px] text-muted-foreground">Member limit remaining</div>
+                <div className="text-[11px] text-muted-foreground">Left to use this year</div>
               </div>
             </div>
           </div>
@@ -178,7 +202,7 @@ export function ProcessStep(props: Props) {
           <OfficerComparison officer={officerDecision} review={review} />
         ) : (
           <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
-            The officer&apos;s ACPS comparison is omitted because this custom intake has a different patient or amount from the sample archive.
+            No comparison is shown, because this claim has a different patient or amount than the saved sample.
           </div>
         ))}
 
@@ -191,10 +215,10 @@ export function ProcessStep(props: Props) {
               <div>
                 <CardTitle className="text-base font-bold tracking-tight">Payout Breakdown</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  {AGENT.ADJUDICATION}: Itemized calculation &amp; plan limit caps
+                  {AGENT.ADJUDICATION}: each item, after plan limits
                 </CardDescription>
               </div>
-              <Badge variant="outline" className="text-xs font-mono">ACPS Policy Schedule</Badge>
+              <Badge variant="outline" className="text-xs font-mono">Plan rules</Badge>
             </div>
           </CardHeader>
           <CardContent className="pt-4">
@@ -202,7 +226,7 @@ export function ProcessStep(props: Props) {
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead rowSpan={2} className="pl-3 text-xs font-semibold">Expense Head</TableHead>
+                    <TableHead rowSpan={2} className="pl-3 text-xs font-semibold">Expense</TableHead>
                     <LimitGroupHead />
                     <TableHead rowSpan={2} className="text-right text-xs font-semibold">Claimed</TableHead>
                     <TableHead rowSpan={2} className="text-right text-xs font-semibold">Deducted</TableHead>
@@ -239,7 +263,7 @@ export function ProcessStep(props: Props) {
                 </TableBody>
                 <TableFooter className="bg-muted/50">
                   <TableRow className="hover:bg-transparent text-xs font-bold">
-                    <TableCell className="pl-3" colSpan={4}>Net Settlement</TableCell>
+                    <TableCell className="pl-3" colSpan={4}>Total</TableCell>
                     <TableCell className="text-right tabular-nums">{bdt(review.total_claimed)}</TableCell>
                     <TableCell className="text-right text-red-600 tabular-nums">
                       {deductionsTotal > 0 ? `−${bdt(deductionsTotal)}` : '—'}
@@ -258,9 +282,9 @@ export function ProcessStep(props: Props) {
           <CardHeader className="glil-card-header rounded-t-xl pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-bold tracking-tight">Policy Checks &amp; Anti-Fraud Shield</CardTitle>
+                <CardTitle className="text-base font-bold tracking-tight">Policy Checks</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  {AGENT.AUDIT}: 6-Point Automated Validation Shield
+                  {AGENT.AUDIT}: 6 automatic checks
                 </CardDescription>
               </div>
               <Badge
@@ -271,7 +295,7 @@ export function ProcessStep(props: Props) {
                 )}
               >
                 {failed ? <AlertTriangle className="size-3" /> : <ShieldCheck className="size-3" />}
-                {failed ? `${failed} Issue${failed > 1 ? 's' : ''} Flagged` : 'All 6 Checks Passed'}
+                {failed ? `${failed} Issue${failed > 1 ? 's' : ''} Found` : 'All 6 Checks Passed'}
               </Badge>
             </div>
           </CardHeader>
@@ -311,18 +335,18 @@ export function ProcessStep(props: Props) {
         <CardHeader className="glil-card-header rounded-t-xl pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base font-bold tracking-tight">Final Sign-Off &amp; Submission</CardTitle>
+              <CardTitle className="text-base font-bold tracking-tight">Final Approval</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Verified by Claim Officer <span className="font-semibold text-foreground">{reviewedBy}</span>.{' '}
+                Checked by Claim Officer <span className="font-semibold text-foreground">{reviewedBy}</span>.{' '}
                 {review.single_step_approval
-                  ? `Payable amount (${bdt(review.total_payable)}) qualifies for single-step instant disbursement.`
+                  ? `The payout (${bdt(review.total_payable)}) can be approved in one step.`
                   : review.status === 'SETTLED'
-                    ? 'Requires doctor review before final release.'
+                    ? 'A doctor needs to review this before payment.'
                     : ''}
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-xs gap-1 border-indigo-200 bg-indigo-50 text-indigo-700">
-              <FileCheck className="size-3" /> Ready for Final Submit
+              <FileCheck className="size-3" /> Ready to approve
             </Badge>
           </div>
         </CardHeader>
@@ -331,31 +355,57 @@ export function ProcessStep(props: Props) {
           <div className="text-xs text-muted-foreground">
             {!canSignOff ? (
               <span className="text-amber-800 font-semibold">
-                ⚠️ To approve, switch &quot;Acting as&quot; in the top bar to Senior Auditor (Imran Chowdhury).
+                To approve, pick Final Approver (Imran Chowdhury) from the user list at the top.
               </span>
             ) : (
               <span className="text-emerald-700 font-semibold">
-                ✓ Authorized Senior Auditor: Ready to approve and submit transaction.
+                ✓ You are the Final Approver. You can approve now.
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Button variant="outline" size="lg" onClick={onBack} disabled={busy} className="gap-2">
-              <ArrowLeft className="size-4" /> Back to Review
+              <ArrowLeft className="size-4" /> Back
             </Button>
             <Button
               size="lg"
               disabled={!canSignOff || busy}
-              onClick={onSignOff}
+              onClick={() => (review.status === 'SETTLED' ? onSignOff() : setConfirming(true))}
               className="bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
             >
               <Send className="size-4" />
-              {busy ? 'Approving & Submitting…' : 'Approve & Submit Claim'}
+              {busy ? 'Approving…' : 'Approve Claim'}
             </Button>
           </div>
         </CardFooter>
       </Card>
+
+      <Dialog open={confirming} onOpenChange={setConfirming}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save this claim anyway?</DialogTitle>
+            <DialogDescription>
+              The AI did not settle this claim. Its decision is &quot;{STATUS_LABEL[review.status]}&quot;. If you
+              continue, the claim is saved to ACPS with that decision.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirming(false)}>
+              Go back
+            </Button>
+            <Button
+              className="bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white"
+              onClick={() => {
+                setConfirming(false)
+                onSignOff()
+              }}
+            >
+              Yes, save it
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
