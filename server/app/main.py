@@ -99,6 +99,7 @@ def approve(body: ApproveIn):
         "claim_status": body.review.status,
         "rejection_reason": body.review.rejection_reason,
         "required_documents": body.review.required_documents,
+        "excess_remarks": body.claim.excess_remarks,
         "claimed_amount": body.review.total_claimed,
         "payable_amount": body.review.total_payable,
         "approval_status": (

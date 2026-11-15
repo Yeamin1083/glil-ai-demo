@@ -40,7 +40,8 @@ export function ProcessStep(props: Props) {
   // every reason once: the main reason, each failed check, and remarks that say something new
   const mainReason = review.rejection_reason ? humanize(review.rejection_reason) : null
   const regretReasons: { title: string; note?: string }[] = []
-  if (mainReason) regretReasons.push({ title: mainReason })
+  // ACPS's bare "Others" says nothing; the failed checks below explain it
+  if (mainReason && !(mainReason === 'Others' && failedChecks.length)) regretReasons.push({ title: mainReason })
   failedChecks.forEach((c) => regretReasons.push({ title: `Failed check: ${c.check}`, note: c.detail }))
   const remarks = new Map<string, string[]>()
   review.expenses.forEach((e) =>

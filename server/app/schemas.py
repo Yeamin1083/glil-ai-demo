@@ -8,6 +8,8 @@ Status = Literal["SETTLED", "REGRETTED", "DOCUMENTS REQUIRED"]
 class ExpenseIn(BaseModel):
     category: str
     claimed: int
+    deducted: int = 0  # what the claim officer already deducted
+    remarks: str = ""
 
 
 class ClaimIn(BaseModel):
@@ -23,8 +25,8 @@ class ClaimIn(BaseModel):
     physician_name: str = ""
     physician_type: str = ""
     diagnosis: str = ""
-    # bill-level discount from agent 1; categories stay gross and agent 2 deducts it
-    bill_discount: int = 0
+    excess_amount: int = 0  # ACPS excess: claimed money that is not an item
+    excess_remarks: str = ""  # ACPS excess remarks
     expenses: list[ExpenseIn]
 
 

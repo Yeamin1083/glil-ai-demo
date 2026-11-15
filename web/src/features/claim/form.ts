@@ -3,6 +3,8 @@ import type { ClaimIn, Confidence, Extraction, Scored } from './types'
 export interface ExpenseRow {
   category: string
   claimed: string
+  deducted: string // filled by the claim officer
+  remarks: string
   confidence: Confidence
 }
 
@@ -20,7 +22,8 @@ export interface ClaimForm {
   physician_type: string
   diagnosis: string
   treatment_type: string
-  bill_discount: string
+  excess_amount: string
+  excess_remarks: string
   expenses: ExpenseRow[]
 }
 
@@ -52,12 +55,15 @@ export function fromExtraction(ex: Extraction, memberCode: string, referenceDate
     physician_type: text(ex.physician_type),
     diagnosis: text(ex.diagnosis),
     treatment_type: text(ex.treatment_type) || 'CONSERVATIVE',
-    bill_discount: text(ex.bill_discount),
+    excess_amount: '',
+    excess_remarks: '',
     expenses: Object.entries(ex.expense_breakdown ?? {})
       .filter(([, amount]) => Number(amount.value) > 0)
       .map(([category, amount]) => ({
       category,
       claimed: text(amount),
+      deducted: '',
+      remarks: '',
       confidence: amount.confidence,
     })),
   }
@@ -71,7 +77,6 @@ export function fromExtraction(ex: Extraction, memberCode: string, referenceDate
     physician_type: ex.physician_type?.confidence ?? null,
     diagnosis: ex.diagnosis?.confidence ?? null,
     treatment_type: ex.treatment_type?.confidence ?? null,
-    bill_discount: ex.bill_discount?.confidence ?? null,
   }
   return { form, confidence }
 }
@@ -88,7 +93,8 @@ export function toClaimIn(form: ClaimForm): ClaimIn {
     claim_type: form.claim_type,
     treatment_date: form.treatment_date,
     reference_date: form.reference_date,
-    bill_discount: amount(form.bill_discount),
+    excess_amount: amount(form.excess_amount),
+    excess_remarks: form.excess_remarks,
     claimed_amount: amount(form.claimed_amount),
     hospital_name: form.hospital_name,
     physician_name: form.physician_name,
@@ -96,6 +102,6 @@ export function toClaimIn(form: ClaimForm): ClaimIn {
     diagnosis: form.diagnosis,
     expenses: form.expenses
       .filter((row) => row.category && amount(row.claimed) > 0)
-      .map((row) => ({ category: row.category, claimed: amount(row.claimed) })),
+      .map((row) => ({ category: row.category, claimed: amount(row.claimed), deducted: amount(row.deducted), remarks: row.remarks })),
   }
 }

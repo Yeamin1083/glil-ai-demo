@@ -11,10 +11,10 @@ MEMBER
 $member
 
 STEP 1: lines
+The officer may already have deducted part of a category (expenses[].deducted). Do not deduct that again.
 For every expense category in the claim, return one line with the amount to deduct from that category (0 if it is fully payable) and, only if you deduct, one remark copied exactly from this list:
 $remarks
 Deduct only when the documents show a reason:
-- bill_discount in the claim: amounts are gross, so deduct the discount from the category whose bill carries it, with remark "Discount amount is not payable"
 - items on a bill without a matching money receipt, or a receipt without an itemized breakdown
 - medicines not on the prescription, or more than the prescribed course
 - vitamins, dietary supplements, calcium, non-medicated items, sunglasses

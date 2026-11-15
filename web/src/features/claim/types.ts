@@ -88,6 +88,8 @@ export interface Fixtures {
 }
 
 export interface ExpenseIn {
+  deducted: number
+  remarks: string
   category: string
   claimed: number
 }
@@ -95,7 +97,8 @@ export interface ExpenseIn {
 export interface ClaimIn {
   member_code: string
   patient_name: string
-  bill_discount: number
+  excess_amount: number
+  excess_remarks: string
   claim_type: string
   treatment_date: string
   reference_date: string

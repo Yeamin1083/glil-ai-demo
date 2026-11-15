@@ -259,7 +259,7 @@ export default function App() {
       {/* Main Content Area */}
       <main className="mx-auto max-w-[1360px] px-6 pt-6 pb-16">
         {error && (
-          <Alert variant="destructive" className="mb-5 shadow-sm">
+          <Alert variant="destructive" role="alert" className="fixed left-1/2 top-20 z-50 w-[min(42rem,calc(100%-2rem))] -translate-x-1/2 bg-white shadow-lg">
             <AlertDescription className="flex items-center justify-between gap-3 text-xs">
               <span>{error}</span>
               <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setError(null)}>

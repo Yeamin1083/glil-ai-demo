@@ -34,7 +34,7 @@ interface Props {
 
 const FIELD_ORDER: FormField[] = [
   'patient_name', 'claim_type', 'treatment_date', 'reference_date', 'dispatch_number', 'dispatch_date',
-  'claimed_amount', 'bill_discount', 'hospital_name', 'physician_name', 'physician_type', 'diagnosis',
+  'claimed_amount', 'excess_amount', 'hospital_name', 'physician_name', 'physician_type', 'diagnosis',
   'treatment_type',
 ]
 
@@ -67,15 +67,25 @@ export function ReviewStep(props: Props) {
   }
 
   const setExpense = (i: number, patch: Partial<ClaimForm['expenses'][number]>) => {
-    setTouchedExpenses((t) => new Set(t).add(i))
+    // deducted and remarks are the officer's own, so they don't mark the AI-read fields as edited
+    const aiField = 'category' in patch || 'claimed' in patch
+    if (aiField) setTouchedExpenses((t) => new Set(t).add(i))
     onChange({
       ...form,
-      expenses: form.expenses.map((row, j) => (j === i ? { ...row, ...patch, confidence: null } : row)),
+      expenses: form.expenses.map((row, j) =>
+        j === i ? { ...row, ...patch, ...(aiField && { confidence: null }) } : row,
+      ),
     })
   }
 
   const total = expenseTotal(form)
+  const deductedTotal = form.expenses.reduce((sum, r) => sum + Math.round(Number(r.deducted) || 0), 0)
+  // the bills show a discount, so the officer must say where it applies before moving on
+  const billDiscount = Math.round(Number(extraction.bill_discount?.value) || 0)
+  const needsDiscountBreakdown = billDiscount > 0 && deductedTotal === 0
   const claimed = Math.round(Number(form.claimed_amount) || 0)
+  // as in ACPS: what is claimed but is neither an item nor the excess amount
+  const gap = claimed - (total + Math.round(Number(form.excess_amount) || 0))
   const badDates = (['treatment_date', 'reference_date'] as const).some((f) => !DATE_PATTERN.test(form[f]))
   const codes = EXPENSE_CODES[form.claim_type] ?? EXPENSE_CODES.GENERAL
 
@@ -238,7 +248,6 @@ export function ReviewStep(props: Props) {
               {field('dispatch_number', 'Dispatch / Receipt No.')}
               {field('dispatch_date', 'Dispatch Date', { hint: 'dd-mm-yyyy' })}
               {field('claimed_amount', 'Total Claimed Amount (৳)')}
-              {field('bill_discount', 'Bill Discount (৳)')}
             </div>
           </section>
 
@@ -269,12 +278,15 @@ export function ReviewStep(props: Props) {
                 size="sm"
                 className="h-7 text-xs gap-1 border-dashed"
                 onClick={() =>
-                  onChange({ ...form, expenses: [...form.expenses, { category: codes[0], claimed: '', confidence: null }] })
+                  onChange({ ...form, expenses: [...form.expenses, { category: codes[0], claimed: '', deducted: '', remarks: '', confidence: null }] })
                 }
               >
                 <Plus className="size-3" /> Add Row
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              If the bills show a discount, the claim officer enters it item by item in the Deducted column.
+            </p>
 
             <div className="overflow-hidden rounded-lg border">
               <Table>
@@ -283,6 +295,9 @@ export function ReviewStep(props: Props) {
                     <TableHead rowSpan={2} className="pl-3 text-xs font-semibold">Expense</TableHead>
                     <LimitGroupHead />
                     <TableHead rowSpan={2} className="w-36 text-right text-xs font-semibold">Claimed (৳)</TableHead>
+                    <TableHead rowSpan={2} className="w-32 text-right text-xs font-semibold">Deducted (৳)</TableHead>
+                    <TableHead rowSpan={2} className="w-28 text-right text-xs font-semibold">Payable (৳)</TableHead>
+                    <TableHead rowSpan={2} className="min-w-40 text-xs font-semibold">Remarks</TableHead>
                     <TableHead rowSpan={2} className="w-10" />
                   </TableRow>
                   <TableRow className="hover:bg-transparent">
@@ -338,6 +353,26 @@ export function ReviewStep(props: Props) {
                             />
                           </InputGroup>
                         </TableCell>
+                        <TableCell className="align-top">
+                          <Input
+                            inputMode="decimal"
+                            aria-label={`${humanize(row.category)} deducted`}
+                            value={row.deducted}
+                            className="ml-auto h-9 w-28 text-right text-xs font-semibold tabular-nums"
+                            onChange={(e) => setExpense(i, { deducted: e.target.value })}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right align-top pt-3 text-xs font-bold tabular-nums">
+                          {bdt(Math.max(Math.round(Number(row.claimed) || 0) - Math.round(Number(row.deducted) || 0), 0))}
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <Input
+                            aria-label={`${humanize(row.category)} remarks`}
+                            value={row.remarks}
+                            className="h-9 text-xs"
+                            onChange={(e) => setExpense(i, { remarks: e.target.value })}
+                          />
+                        </TableCell>
                         <TableCell className="pr-2 text-right align-top">
                           <Button
                             variant="ghost"
@@ -354,7 +389,7 @@ export function ReviewStep(props: Props) {
                   })}
                   {form.expenses.length === 0 && (
                     <TableRow className="hover:bg-transparent">
-                      <TableCell colSpan={6} className="py-6 text-center text-xs text-muted-foreground">
+                      <TableCell colSpan={9} className="py-6 text-center text-xs text-muted-foreground">
                         No items yet. Click &quot;Add Row&quot;.
                       </TableCell>
                     </TableRow>
@@ -364,18 +399,34 @@ export function ReviewStep(props: Props) {
                   <TableRow className="hover:bg-transparent">
                     <TableCell className="pl-3 text-xs font-semibold" colSpan={4}>Total</TableCell>
                     <TableCell className="pr-3 text-right font-bold text-sm tabular-nums text-foreground">{bdt(total)}</TableCell>
-                    <TableCell />
+                    <TableCell className="text-right font-bold text-sm tabular-nums">{bdt(deductedTotal)}</TableCell>
+                    <TableCell className="text-right font-bold text-sm tabular-nums">{bdt(Math.max(total - deductedTotal, 0))}</TableCell>
+                    <TableCell colSpan={2} />
                   </TableRow>
                 </TableFooter>
               </Table>
             </div>
           </section>
 
+          {/* Excess: money on the bills that is not an item, like a discount (same idea as ACPS's Excess section) */}
+          <section className="grid gap-3 rounded-xl border bg-muted/30 p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Excess</h3>
+              <Badge variant="outline" className={cn('text-xs', gap === 0 ? 'border-emerald-300 text-emerald-800' : 'border-amber-300 text-amber-800')}>
+                Left over: {bdt(gap)}
+              </Badge>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
+              {field('excess_amount', 'Amount (৳)', { hint: 'Claimed money that is not one of the items' })}
+              {field('excess_remarks', 'Remarks')}
+            </div>
+          </section>
+
           {/* Mismatch Warning */}
-          {total !== claimed && (
+          {gap !== 0 && (
             <Alert className="border-amber-300 bg-amber-50/70 text-amber-900">
               <AlertDescription className="text-xs text-amber-900 flex items-center gap-2">
-                <span>Note: the items add up to {bdt(total)}, but the claimed amount is {bdt(claimed)}. Please check.</span>
+                <span>Note: the items and the excess add up to {bdt(claimed - gap)}, but the claimed amount is {bdt(claimed)}. Please check.</span>
               </AlertDescription>
             </Alert>
           )}
@@ -409,6 +460,10 @@ export function ReviewStep(props: Props) {
           <div className="text-xs text-muted-foreground">
             {!canSubmit ? (
               <span className="text-amber-800 font-medium">To continue, pick a Claim Officer from the user list at the top.</span>
+            ) : needsDiscountBreakdown ? (
+              <span className="text-amber-800 font-medium">
+                The bills show a discount of {bdt(billDiscount)}. Enter it item by item in the Deducted column to continue.
+              </span>
             ) : (
               <span>Looks good? Go ahead and check this claim.</span>
             )}
@@ -416,7 +471,7 @@ export function ReviewStep(props: Props) {
           {/* Action button renamed to simple, clear title */}
           <Button
             size="lg"
-            disabled={!canSubmit || busy || badDates || form.expenses.length === 0}
+            disabled={!canSubmit || busy || badDates || form.expenses.length === 0 || needsDiscountBreakdown}
             onClick={onSubmit}
             className="w-full sm:w-auto bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
           >
