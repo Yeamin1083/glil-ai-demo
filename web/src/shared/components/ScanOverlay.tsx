@@ -1,8 +1,9 @@
 import { Bot, Check, Layers, ShieldCheck, Sparkles } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { useObjectUrl } from '@/shared/useObjectUrl'
 
 interface Props {
   file: File
@@ -13,8 +14,7 @@ interface Props {
 const STEP_MS = 1400
 
 export function ScanOverlay({ file, title, steps }: Props) {
-  const url = useMemo(() => URL.createObjectURL(file), [file])
-  useEffect(() => () => URL.revokeObjectURL(url), [url])
+  const url = useObjectUrl(file)
   const [active, setActive] = useState(0)
 
   useEffect(() => {

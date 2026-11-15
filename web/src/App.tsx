@@ -48,6 +48,7 @@ export default function App() {
   const [view, setView] = useState<'welcome' | 'claims' | 'hr'>('welcome')
   const [step, setStep] = useState<Step>(STEP.INTIMATION)
   const [busy, setBusy] = useState(false)
+  const [aiMs, setAiMs] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [hrApproved, setHrApproved] = useState(false)
   const [scanning, setScanning] = useState<{ file: File; agent: 'extract' | 'review' } | null>(null)
@@ -76,6 +77,14 @@ export default function App() {
     loadFixtures()
   }, [])
 
+  // real time the AI spent, not counting the pause that keeps the scan screen readable
+  const timed = async <T,>(p: Promise<T>) => {
+    const t = performance.now()
+    const r = await p
+    setAiMs((ms) => ms + performance.now() - t)
+    return r
+  }
+
   async function run(task: () => Promise<void>) {
     setBusy(true)
     setError(null)
@@ -94,7 +103,8 @@ export default function App() {
   const intimate = (doc: File, memberCode: string, hrNumber?: string) =>
     run(async () => {
       setScanning({ file: doc, agent: 'extract' })
-      const [result] = await Promise.all([extractClaim(doc), pause(MIN_SCAN_MS)])
+      setAiMs(0)
+      const [result] = await Promise.all([timed(extractClaim(doc)), pause(MIN_SCAN_MS)])
       const known = fixtures?.samples.find((s) => s.member_code === memberCode)
       const prefilled = fromExtraction(result.extraction, memberCode, known?.reference_date)
       setFile(doc)
@@ -124,7 +134,7 @@ export default function App() {
   const sendToProcessing = () =>
     run(async () => {
       setScanning({ file: file!, agent: 'review' })
-      const [result] = await Promise.all([reviewClaim(file!, toClaimIn(form!)), pause(MIN_SCAN_MS)])
+      const [result] = await Promise.all([timed(reviewClaim(file!, toClaimIn(form!))), pause(MIN_SCAN_MS)])
       setReview(result)
       setReviewedBy(officer!.name)
       setStep(STEP.PROCESS)
@@ -368,7 +378,7 @@ export default function App() {
               onSignOff={signOff}
             />
           ) : step === STEP.ORACLE && record ? (
-            <OracleStep record={record} onNext={reset} />
+            <OracleStep record={record} aiSeconds={aiMs / 1000} onNext={reset} />
           ) : null}
         </div>
       </main>

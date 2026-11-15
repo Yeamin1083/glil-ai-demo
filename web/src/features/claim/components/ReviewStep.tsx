@@ -1,5 +1,5 @@
 import { ArrowRight, CheckCircle2, ExternalLink, FileText, Info, Plus, Sparkles, X } from 'lucide-react'
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { Typewriter } from '@/shared/components/Typewriter'
 import { CLAIM_TYPES, DATE_PATTERN, EXPENSE_CODES, PHYSICIAN_TYPES, TREATMENT_TYPES } from '@/shared/constants'
 import { bdt, humanize } from '@/shared/format'
+import { useObjectUrl } from '@/shared/useObjectUrl'
 import { expenseTotal, type ClaimForm, type FormField } from '../form'
 import { LimitCells, LimitGroupHead, LimitHeads, limitBefore } from './PlanLimit'
 import type { Confidence, Extraction, Member } from '../types'
@@ -54,8 +55,7 @@ function ConfidenceBadge({ level }: { level: Confidence | undefined }) {
 
 export function ReviewStep(props: Props) {
   const { file, intimationNumber, hrApproved, extraction, member, form, confidence, canSubmit, busy, onChange, onSubmit } = props
-  const previewUrl = useMemo(() => URL.createObjectURL(file), [file])
-  useEffect(() => () => URL.revokeObjectURL(previewUrl), [previewUrl])
+  const previewUrl = useObjectUrl(file)
 
   // Track user edits for Step 3 & Action Item 6: Green for AI, Orange for Human
   const [touched, setTouched] = useState<Set<FormField>>(() => new Set())

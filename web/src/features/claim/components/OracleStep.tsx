@@ -4,15 +4,16 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { bdt } from '@/shared/format'
+import { bdt, humanize } from '@/shared/format'
 import type { OracleRecord } from '../types'
 
 interface Props {
   record: OracleRecord
+  aiSeconds: number
   onNext: () => void
 }
 
-export function OracleStep({ record, onNext }: Props) {
+export function OracleStep({ record, aiSeconds, onNext }: Props) {
   const [showJson, setShowJson] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -26,6 +27,8 @@ export function OracleStep({ record, onNext }: Props) {
   const reviewedBy = String(record.reviewed_by || 'Claim Officer')
   const postAuditedBy = String(record.post_audited_by || 'Claim Analyst')
   const settledAt = record.settled_at ? String(record.settled_at).replace('T', ' ') : 'Just now'
+
+  const settled = claimStatus === 'SETTLED'
 
   const copyPayload = () => {
     navigator.clipboard.writeText(JSON.stringify(record, null, 2))
@@ -45,7 +48,7 @@ export function OracleStep({ record, onNext }: Props) {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold tracking-tight">Claim Approved</h2>
+                  <h2 className="text-xl font-bold tracking-tight">{settled ? 'Claim Approved' : 'Decision Saved'}</h2>
                   <Badge className="border-0 bg-white/20 text-white hover:bg-white/30 text-xs">
                     Saved in ACPS
                   </Badge>
@@ -79,7 +82,7 @@ export function OracleStep({ record, onNext }: Props) {
             <div className="rounded-lg border bg-muted/40 p-3.5">
               <div className="text-xs text-muted-foreground">Approval</div>
               <div className="text-sm font-semibold text-indigo-700">
-                {approvalStatus === 'APPROVED' ? 'Approved right away (≤ ৳3,000)' : approvalStatus}
+                {humanize(approvalStatus)}
               </div>
             </div>
             <div className="rounded-lg border bg-muted/40 p-3.5">
@@ -110,7 +113,7 @@ export function OracleStep({ record, onNext }: Props) {
                 <div className="text-xs">
                   <div className="font-medium text-foreground">Final Check</div>
                   <div className="text-muted-foreground">Approved by: <span className="font-semibold text-foreground">{postAuditedBy}</span></div>
-                  <div className="text-muted-foreground">Approved and sent for payment</div>
+                  <div className="text-muted-foreground">{settled ? 'Approved and sent for payment' : 'Saved with the decision above'}</div>
                 </div>
               </div>
             </div>
@@ -124,17 +127,10 @@ export function OracleStep({ record, onNext }: Props) {
                 How Fast It Was
               </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="rounded-lg border border-indigo-200/60 bg-white/70 p-3">
-                <div className="text-muted-foreground">Time Taken</div>
-                <div className="text-lg font-bold text-indigo-900 mt-0.5">18.4 Seconds</div>
-                <div className="text-[11px] text-muted-foreground">From upload to saved claim</div>
-              </div>
-              <div className="rounded-lg border border-emerald-200/60 bg-white/70 p-3">
-                <div className="text-muted-foreground">Faster Than Before</div>
-                <div className="text-lg font-bold text-emerald-700 mt-0.5">99.8% Faster</div>
-                <div className="text-[11px] text-emerald-700/80">The member gets paid sooner</div>
-              </div>
+            <div className="rounded-lg border border-indigo-200/60 bg-white/70 p-3 text-xs">
+              <div className="text-muted-foreground">AI time</div>
+              <div className="text-lg font-bold text-indigo-900 mt-0.5">{aiSeconds.toFixed(1)} seconds</div>
+              <div className="text-[11px] text-muted-foreground">Reading the documents and checking the claim</div>
             </div>
           </div>
 
