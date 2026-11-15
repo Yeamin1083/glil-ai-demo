@@ -131,11 +131,6 @@ export function OracleStep({ record, onNext }: Props) {
                 <div className="text-[11px] text-muted-foreground">From upload to Oracle sync</div>
               </div>
               <div>
-                <div className="text-muted-foreground">Legacy Manual TAT</div>
-                <div className="text-base font-bold text-muted-foreground">2 to 3 Business Days</div>
-                <div className="text-[11px] text-muted-foreground">Queue, manual entry & review</div>
-              </div>
-              <div>
                 <div className="text-muted-foreground">Turnaround Improvement</div>
                 <div className="text-base font-bold text-emerald-700">99.8% Faster</div>
                 <div className="text-[11px] text-muted-foreground">Immediate customer satisfaction</div>
