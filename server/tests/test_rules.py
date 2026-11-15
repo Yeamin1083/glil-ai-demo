@@ -130,3 +130,12 @@ def test_other_persons_documents_are_regretted_for_name_mismatch():
         "REGRETTED",
         fx.REASON_NAME_MISMATCH,
     )
+
+
+def test_summary_follows_the_final_decision_when_rules_override_the_model():
+    first = claim("DEMO-7049-0001", {"MEDICINE": 1500})
+    record_settlement(first, review(first, settled()))
+    again = review(claim("DEMO-7049-0001", {"MEDICINE": 1500}), settled())
+    assert again.status == "REGRETTED"
+    assert "regretted" in again.summary
+    assert "double" in again.summary.lower()
