@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+
 class Status(StrEnum):
     SETTLED = "SETTLED"
     DOCUMENTS_REQUIRED = "DOCUMENTS REQUIRED"
@@ -91,11 +92,23 @@ class Review(BaseModel):
 
 
 class AuditReview(BaseModel):
-    """The second AI call: a double-check of the officer's final decision before it is saved."""
+    """The model's double-check of its own settlement."""
 
     verdict: Literal["OK", "LOOK_AGAIN"]
     checks: list[AuditCheck]
     summary: str
+
+
+class SettleResult(BaseModel):
+    """What the one settle call returns: the settlement and the model's double-check of it."""
+
+    settlement: ModelReview
+    double_check: AuditReview
+
+
+class SettleOut(BaseModel):
+    review: Review
+    double_check: AuditReview
 
 
 class DecideIn(BaseModel):

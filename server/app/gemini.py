@@ -10,12 +10,14 @@ from pydantic import BaseModel
 
 from app import fixtures as fx
 from app.config import settings
-from app.schemas import AuditReview, ClaimIn, Review, Status
+from app.schemas import ClaimIn, SettleResult, Status
 
 # the prompts name the statuses from the enum, so a rename cannot leave them behind
 _STATUS_WORDS = {s.name.lower(): s.value for s in Status}
-_SETTLE_PROMPT = Template((Path(__file__).parent / "prompts" / "settle.txt").read_text())
-_AUDIT_PROMPT = Template((Path(__file__).parent / "prompts" / "audit.txt").read_text())
+_SETTLE_PROMPT = Template(
+    (Path(__file__).parent / "prompts" / "settle.txt").read_text()
+)
+
 
 @cache
 def _client() -> genai.Client:
@@ -30,44 +32,32 @@ class ReviewFailed(Exception):
     pass
 
 
-def settle_prompt(member_code: str) -> str:
-    """The second task added to ocr-extract's call, so one model call extracts and settles."""
-    member = fx.MEMBERS[member_code]
-    return _SETTLE_PROMPT.substitute(
+async def settle_and_check(
+    claim: ClaimIn, document: bytes, mime_type: str
+) -> SettleResult:
+    """The one AI call after the officer has checked the details: settle, then double-check."""
+    member = fx.MEMBERS[claim.member_code]
+    prompt = _SETTLE_PROMPT.substitute(
+        claim=claim.model_dump_json(indent=2),
         member=json.dumps(
             {
                 "name": member["name"],
                 "relation": member["relation"],
-                "plan_covers_dental_and_optical": fx.covers_dental_optical(member["plan"]),
+                "plan_covers_dental_and_optical": fx.covers_dental_optical(
+                    member["plan"]
+                ),
             }
         ),
         remarks="\n".join(f"- {r}" for r in fx.MODEL_REMARKS),
         reasons="\n".join(f"- {r}" for r in fx.MODEL_REJECTION_REASONS),
         **_STATUS_WORDS,
     )
+    return await _generate(prompt, document, mime_type, SettleResult)
 
 
-async def audit_claim(claim: ClaimIn, review: Review, document: bytes, mime_type: str) -> AuditReview:
-    decision = review.model_dump(
-        include={
-            "status",
-            "ai_status",
-            "decided_by_officer",
-            "officer_remarks",
-            "rejection_reason",
-            "required_documents",
-            "total_claimed",
-            "total_payable",
-            "expenses",
-        }
-    )
-    prompt = _AUDIT_PROMPT.substitute(
-        claim=claim.model_dump_json(indent=2), decision=json.dumps(decision, indent=2), **_STATUS_WORDS
-    )
-    return await _generate(prompt, document, mime_type, AuditReview)
-
-
-async def _generate(prompt: str, document: bytes, mime_type: str, schema: type[BaseModel]):
+async def _generate(
+    prompt: str, document: bytes, mime_type: str, schema: type[BaseModel]
+):
     config = types.GenerateContentConfig(
         temperature=0,
         response_mime_type="application/json",
@@ -81,7 +71,10 @@ async def _generate(prompt: str, document: bytes, mime_type: str, schema: type[B
         try:
             response = await _client().aio.models.generate_content(
                 model=settings.GEMINI_MODEL,
-                contents=[prompt, types.Part.from_bytes(data=document, mime_type=mime_type)],
+                contents=[
+                    prompt,
+                    types.Part.from_bytes(data=document, mime_type=mime_type),
+                ],
                 config=config,
             )
             break

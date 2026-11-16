@@ -1,20 +1,46 @@
-import { CheckCircle2, Scale, Sparkles, User, AlertTriangle } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { cn } from '@/lib/utils'
-import { STATUS_LABEL, STATUS_TONE, TONE_TEXT } from '@/shared/constants'
-import { bdt, humanize } from '@/shared/format'
-import type { OfficerDecision, Review } from '../types'
+import {
+  CheckCircle2,
+  Scale,
+  Sparkles,
+  User,
+  AlertTriangle,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { STATUS_LABEL, STATUS_TONE, TONE_TEXT } from "@/shared/constants";
+import { bdt, humanize } from "@/shared/format";
+import type { OfficerDecision, Review } from "../types";
 
-export function OfficerComparison({ officer, review }: { officer: OfficerDecision; review: Review }) {
-  const sameStatus = officer.status === review.status
-  const samePayable = officer.payable_amount === review.total_payable
+export function OfficerComparison({
+  officer,
+  review,
+}: {
+  officer: OfficerDecision;
+  review: Review;
+}) {
+  const sameStatus = officer.status === review.status;
+  const samePayable = officer.payable_amount === review.total_payable;
   const verdict = sameStatus
     ? samePayable
-      ? 'AI and officer agree'
-      : 'Same decision, different amount'
-    : 'AI and officer differ'
+      ? "AI and officer agree"
+      : "Same decision, different amount"
+    : "AI and officer differ";
 
   return (
     <Card className="border-border/80 shadow-sm overflow-hidden">
@@ -35,13 +61,17 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
             <Badge
               variant="outline"
               className={cn(
-                'gap-1.5 text-xs font-semibold px-2.5 py-1',
+                "gap-1.5 text-xs font-semibold px-2.5 py-1",
                 sameStatus && samePayable
-                  ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                  : 'border-amber-300 bg-amber-50 text-amber-800',
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                  : "border-amber-300 bg-amber-50 text-amber-800",
               )}
             >
-              {sameStatus && samePayable ? <CheckCircle2 className="size-3.5 text-emerald-600" /> : <AlertTriangle className="size-3.5 text-amber-600" />}
+              {sameStatus && samePayable ? (
+                <CheckCircle2 className="size-3.5 text-emerald-600" />
+              ) : (
+                <AlertTriangle className="size-3.5 text-amber-600" />
+              )}
               {verdict}
             </Badge>
           </CardAction>
@@ -56,9 +86,16 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <User className="size-3.5" /> Claim Officer
               </span>
-              <Badge variant="outline" className="text-[10px] font-mono">ACPS record</Badge>
+              <Badge variant="outline" className="text-[10px] font-mono">
+                ACPS record
+              </Badge>
             </div>
-            <div className={cn('text-xl font-bold tracking-tight', TONE_TEXT[STATUS_TONE[officer.status]])}>
+            <div
+              className={cn(
+                "text-xl font-bold tracking-tight",
+                TONE_TEXT[STATUS_TONE[officer.status]],
+              )}
+            >
               {STATUS_LABEL[officer.status] || humanize(officer.status)}
             </div>
             {officer.rejection_reason && (
@@ -73,7 +110,12 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
             )}
             <div className="pt-2 border-t mt-3 flex justify-between items-baseline text-xs">
               <span className="text-muted-foreground">Officer Approved:</span>
-              <span className="font-bold text-sm text-foreground">{bdt(officer.payable_amount)} <span className="text-xs font-normal text-muted-foreground">of {bdt(officer.claimed_amount)}</span></span>
+              <span className="font-bold text-sm text-foreground">
+                {bdt(officer.payable_amount)}{" "}
+                <span className="text-xs font-normal text-muted-foreground">
+                  of {bdt(officer.claimed_amount)}
+                </span>
+              </span>
             </div>
           </div>
 
@@ -83,9 +125,16 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
               <span className="text-xs font-semibold uppercase tracking-wider text-[var(--glil-orange)] flex items-center gap-1.5">
                 <Sparkles className="size-3.5" /> AI Suggestion
               </span>
-              <Badge className="bg-[var(--glil-orange)] text-white text-[10px]">AI + plan rules</Badge>
+              <Badge className="bg-[var(--glil-orange)] text-white text-[10px]">
+                AI + plan rules
+              </Badge>
             </div>
-            <div className={cn('text-xl font-bold tracking-tight', TONE_TEXT[STATUS_TONE[review.status]])}>
+            <div
+              className={cn(
+                "text-xl font-bold tracking-tight",
+                TONE_TEXT[STATUS_TONE[review.status]],
+              )}
+            >
               {STATUS_LABEL[review.status] || humanize(review.status)}
             </div>
             {review.rejection_reason && (
@@ -100,7 +149,12 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
             )}
             <div className="pt-2 border-t mt-3 flex justify-between items-baseline text-xs">
               <span className="text-muted-foreground">AI payout:</span>
-              <span className="font-bold text-sm text-foreground">{bdt(review.total_payable)} <span className="text-xs font-normal text-muted-foreground">of {bdt(review.total_claimed)}</span></span>
+              <span className="font-bold text-sm text-foreground">
+                {bdt(review.total_payable)}{" "}
+                <span className="text-xs font-normal text-muted-foreground">
+                  of {bdt(review.total_claimed)}
+                </span>
+              </span>
             </div>
           </div>
         </div>
@@ -124,10 +178,18 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
                 <TableBody className="text-xs">
                   {officer.expenses.map((e, idx) => (
                     <TableRow key={idx} className="hover:bg-muted/20">
-                      <TableCell className="pl-3 font-medium">{humanize(e.category)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{bdt(e.claimed)}</TableCell>
-                      <TableCell className="text-right font-semibold tabular-nums">{bdt(e.payable)}</TableCell>
-                      <TableCell className="pr-3 pl-4 text-muted-foreground">{e.remarks || '—'}</TableCell>
+                      <TableCell className="pl-3 font-medium">
+                        {humanize(e.category)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {bdt(e.claimed)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums">
+                        {bdt(e.payable)}
+                      </TableCell>
+                      <TableCell className="pr-3 pl-4 text-muted-foreground">
+                        {e.remarks || "—"}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -137,5 +199,5 @@ export function OfficerComparison({ officer, review }: { officer: OfficerDecisio
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

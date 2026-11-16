@@ -22,10 +22,10 @@ import {
 import { cn } from "@/lib/utils";
 import {
   approveClaim,
-  auditClaim,
   decideClaim,
   extractClaim,
   getFixtures,
+  settleClaim,
 } from "./features/claim/api";
 import { IntimationStep } from "./features/claim/components/IntimationStep";
 import { OracleStep } from "./features/claim/components/OracleStep";
@@ -54,10 +54,10 @@ import {
 import { WelcomePage } from "./features/welcome/WelcomePage";
 import { ScanOverlay } from "./shared/components/ScanOverlay";
 import {
-  AUDIT_STEPS,
+  EXTRACT_STEPS,
+  REVIEW_STEPS,
   ROLE,
   ROLE_LABEL,
-  SCAN_STEPS,
   STEP,
   STEP_LABEL,
   type Step,
@@ -93,7 +93,7 @@ export default function App() {
   const [hrApproved, setHrApproved] = useState(false);
   const [scanning, setScanning] = useState<{
     file: File;
-    agent: "both" | "audit";
+    agent: "extract" | "settle";
   } | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -105,8 +105,6 @@ export default function App() {
   >({});
   const [review, setReview] = useState<Review | null>(null);
   const [audit, setAudit] = useState<AuditResult | null>(null);
-  const [reviewedFor, setReviewedFor] = useState(""); // the claim data the AI last checked
-  const [reviewVersion, setReviewVersion] = useState(0);
   const [record, setRecord] = useState<OracleRecord | null>(null);
 
   // the claim officer does everything, so there is no separate final approver
@@ -134,8 +132,6 @@ export default function App() {
   ).filter((u) => u.role !== ROLE.POST_AUDITOR);
   const officer = users.find((u) => u.id === officerId) ?? users[1]; // default to Claim Officer Farhana
   const member = fixtures?.members.find((m) => m.code === form?.member_code);
-  const stale =
-    !!review && !!form && JSON.stringify(toClaimIn(form)) !== reviewedFor;
   const sample =
     fixtures?.samples.find((s) => s.member_code === form?.member_code) ?? null;
 
@@ -170,14 +166,14 @@ export default function App() {
     }
   }
 
-  // AI call 1: one scan reads the documents and proposes the settlement
+  // AI call 1: reads the documents
   const intimate = (doc: File, memberCode: string, hrNumber?: string) =>
     run(async () => {
-      setScanning({ file: doc, agent: "both" });
+      setScanning({ file: doc, agent: "extract" });
       setAiMs(0);
       const known = fixtures?.samples.find((s) => s.member_code === memberCode);
       const [result] = await Promise.all([
-        timed(extractClaim(doc, memberCode)),
+        timed(extractClaim(doc)),
         pause(MIN_SCAN_MS),
       ]);
       const prefilled = fromExtraction(
@@ -185,18 +181,12 @@ export default function App() {
         memberCode,
         known?.reference_date,
       );
-      const claim = toClaimIn(prefilled.form);
-      // the plan rules run in code on the AI's settlement, so there is no second AI call here
-      const settled = await decideClaim(claim, result.judgement, null, "");
       setFile(doc);
       setIntimationNumber(hrNumber ?? result.intimation_number);
       setHrApproved(!!hrNumber);
       setExtraction(result.extraction);
       setForm(prefilled.form);
       setConfidence(prefilled.confidence);
-      setReview(settled);
-      setReviewedFor(JSON.stringify(claim));
-      setReviewVersion((v) => v + 1);
       setStep(STEP.REVIEW);
     });
 
@@ -215,13 +205,17 @@ export default function App() {
     }
   };
 
-  // the officer changed the details, so the plan rules run again on the same settlement (no AI call)
-  const updateDecision = () =>
+  // AI call 2: settles the checked details and double-checks the settlement
+  const settle = () =>
     run(async () => {
-      const claim = toClaimIn(form!);
-      setReview(await decideClaim(claim, review!.judgement, null, ""));
-      setReviewedFor(JSON.stringify(claim));
-      setReviewVersion((v) => v + 1);
+      setScanning({ file: file!, agent: "settle" });
+      const [result] = await Promise.all([
+        timed(settleClaim(file!, toClaimIn(form!))),
+        pause(MIN_SCAN_MS),
+      ]);
+      setReview(result.review);
+      setAudit(result.double_check);
+      setStep(STEP.PROCESS);
     });
 
   // the officer's own decision and remarks; no new model call
@@ -232,19 +226,7 @@ export default function App() {
       );
     });
 
-  // AI call 2: double-checks the officer's final decision before it is saved
-  const finalCheck = () =>
-    run(async () => {
-      setScanning({ file: file!, agent: "audit" });
-      const [result] = await Promise.all([
-        timed(auditClaim(file!, toClaimIn(form!), review!)),
-        pause(MIN_SCAN_MS),
-      ]);
-      setAudit(result);
-      setStep(STEP.PROCESS);
-    });
-
-  const signOff = () =>
+  const signOff = (overrideRemarks = "") =>
     run(async () => {
       setRecord(
         await approveClaim(
@@ -252,7 +234,7 @@ export default function App() {
           toClaimIn(form!),
           review!,
           officer.name,
-          officer.name,
+          overrideRemarks,
         ),
       );
       setStep(STEP.ORACLE);
@@ -264,7 +246,6 @@ export default function App() {
     setExtraction(null);
     setForm(null);
     setReview(null);
-    setReviewedFor("");
     setAudit(null);
     setRecord(null);
     setHrApproved(false);
@@ -505,11 +486,13 @@ export default function App() {
             <ScanOverlay
               file={scanning.file}
               title={
-                scanning.agent === "audit"
-                  ? "Double-checking the decision..."
-                  : "Reading your documents and working out the payout..."
+                scanning.agent === "extract"
+                  ? "Reading your documents..."
+                  : "Settling the claim and double-checking it..."
               }
-              steps={scanning.agent === "audit" ? AUDIT_STEPS : SCAN_STEPS}
+              steps={
+                scanning.agent === "extract" ? EXTRACT_STEPS : REVIEW_STEPS
+              }
             />
           ) : step === STEP.INTIMATION ? (
             <IntimationStep
@@ -517,12 +500,7 @@ export default function App() {
               busy={busy}
               onSubmit={intimate}
             />
-          ) : step === STEP.REVIEW &&
-            file &&
-            extraction &&
-            form &&
-            member &&
-            review ? (
+          ) : step === STEP.REVIEW && file && extraction && form && member ? (
             <ReviewStep
               file={file}
               intimationNumber={intimationNumber}
@@ -536,13 +514,8 @@ export default function App() {
                 officer?.role === ROLE.HR_ADMIN
               }
               busy={busy}
-              review={review}
-              reviewVersion={reviewVersion}
-              stale={stale}
               onChange={setForm}
-              onRecheck={updateDecision}
-              onDecide={decide}
-              onSubmit={finalCheck}
+              onSubmit={settle}
             />
           ) : step === STEP.PROCESS && review && audit ? (
             <ProcessStep
@@ -552,6 +525,7 @@ export default function App() {
               reviewedBy={officer.name}
               busy={busy}
               onBack={() => setStep(STEP.REVIEW)}
+              onDecide={decide}
               onSignOff={signOff}
             />
           ) : step === STEP.ORACLE && record ? (

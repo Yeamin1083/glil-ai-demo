@@ -4,13 +4,13 @@ from typing import Annotated
 
 import httpx
 from fastapi import FastAPI, Form, HTTPException, UploadFile
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from app import fixtures as fx
 from app.config import settings
-from app.gemini import ReviewFailed, audit_claim, settle_prompt
+from app.gemini import ReviewFailed, settle_and_check
 from app.rules import record_settlement, review
-from app.schemas import AuditReview, ClaimIn, DecideIn, ModelReview, Review, Status
+from app.schemas import ClaimIn, DecideIn, Review, SettleOut, Status
 
 app = FastAPI(title="GLIL AI claims demo")
 
@@ -41,16 +41,13 @@ def fixtures():
 
 
 @app.post("/api/extract")
-async def extract(file: UploadFile, member_code: Annotated[str, Form()]):
-    """AI call 1: ocr-extract reads the claim and, in the same call, proposes the settlement."""
-    if member_code not in fx.MEMBERS:
-        raise HTTPException(422, "Unknown member.")
+async def extract(file: UploadFile):
+    """AI call 1: the real ocr-extract service, unchanged."""
     async with httpx.AsyncClient(timeout=120) as client:
         try:
             response = await client.post(
                 f"{settings.OCR_EXTRACT_URL}/api/v1/claims/extract",
                 headers={"X-API-Key": settings.OCR_EXTRACT_API_KEY},
-                data={"extra_prompt": settle_prompt(member_code)},
                 files={"file": (file.filename, await file.read(), file.content_type)},
             )
         except httpx.HTTPError as e:
@@ -62,17 +59,28 @@ async def extract(file: UploadFile, member_code: Annotated[str, Form()]):
         raise HTTPException(
             response.status_code, body.get("message") or "Extraction failed."
         )
-    extraction = body["data"]
-    try:
-        judgement = ModelReview.model_validate(extraction.pop("extra", None))
-    except ValidationError:
-        raise HTTPException(502, "The AI did not return a settlement, retry.")
     # intimation creates the claim, so it gets its number here
     return {
         "intimation_number": f"GH26-DEMO-{next(_intimation_seq):04d}",
-        "extraction": extraction,
-        "judgement": judgement,
+        "extraction": body["data"],
     }
+
+
+@app.post("/api/settle", response_model=SettleOut)
+async def settle(file: UploadFile, claim: Annotated[str, Form()]):
+    """AI call 2: settles the officer-checked claim and double-checks it; the plan rules run in code."""
+    parsed = ClaimIn.model_validate_json(claim)
+    if parsed.member_code not in fx.MEMBERS:
+        raise HTTPException(422, "Unknown member.")
+    try:
+        result = await settle_and_check(
+            parsed, await file.read(), file.content_type or "application/pdf"
+        )
+    except ReviewFailed as e:
+        raise HTTPException(502, str(e))
+    return SettleOut(
+        review=review(parsed, result.settlement), double_check=result.double_check
+    )
 
 
 @app.post("/api/decide", response_model=Review)
@@ -88,23 +96,9 @@ class ApproveIn(BaseModel):
     claim: ClaimIn
     review: Review
     review_officer: str
-    post_auditor: str
-
-
-@app.post("/api/audit", response_model=AuditReview)
-async def audit_endpoint(
-    file: UploadFile, claim: Annotated[str, Form()], review: Annotated[str, Form()]
-):
-    """The second AI call: double-checks the officer's final decision before it is saved."""
-    try:
-        return await audit_claim(
-            ClaimIn.model_validate_json(claim),
-            Review.model_validate_json(review),
-            await file.read(),
-            file.content_type or "application/pdf",
-        )
-    except ReviewFailed as e:
-        raise HTTPException(502, str(e))
+    audit_override_remarks: str = (
+        ""  # why the officer saved although the double-check said look again
+    )
 
 
 @app.post("/api/approve")
@@ -128,7 +122,7 @@ def approve(body: ApproveIn):
             else None
         ),
         "reviewed_by": body.review_officer,
-        "post_audited_by": body.post_auditor,
+        "audit_override_remarks": body.audit_override_remarks,
         "settled_at": datetime.now().isoformat(timespec="seconds"),
         "expenses": [e.model_dump() for e in body.review.expenses],
     }

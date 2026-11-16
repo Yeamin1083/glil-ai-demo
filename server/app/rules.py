@@ -63,9 +63,15 @@ def apply_limits(
         ai_deducted = min(max(line.deducted, 0), expense.claimed) if line else 0
         # the AI proposed its deduction before the officer looked; when the officer enters one, theirs wins
         if expense.deducted:
-            deducted, remarks = min(expense.deducted, expense.claimed), [expense.remarks] if expense.remarks else []
+            deducted, remarks = (
+                min(expense.deducted, expense.claimed),
+                [expense.remarks] if expense.remarks else [],
+            )
         else:
-            deducted, remarks = ai_deducted, [line.remark] if line and line.remark and ai_deducted else []
+            deducted, remarks = (
+                ai_deducted,
+                [line.remark] if line and line.remark and ai_deducted else [],
+            )
         payable = expense.claimed - deducted
         used = member["items"].get(expense.category, {"amount": 0, "count": 0})
         max_count = plan["item_count_limits"].get(expense.category)
@@ -120,7 +126,10 @@ def apply_limits(
 
 
 def review(
-    claim: ClaimIn, model: ModelReview, officer_status: Status | None = None, officer_remarks: str = ""
+    claim: ClaimIn,
+    model: ModelReview,
+    officer_status: Status | None = None,
+    officer_remarks: str = "",
 ) -> Review:
     member = fx.MEMBERS[claim.member_code]
     plan = member["plan"]
@@ -171,15 +180,25 @@ def review(
     # a model rejection must name a listed reason; otherwise ask the member instead
     if status == Status.REGRETTED and reason not in fx.MODEL_REJECTION_REASONS:
         status = Status.DOCUMENTS_REQUIRED
-    note = None  # plain words for the regret remark when the ACPS reason is just "OTHERS"
+    note = (
+        None  # plain words for the regret remark when the ACPS reason is just "OTHERS"
+    )
     if not member["is_active"]:
-        status, reason, note = Status.REGRETTED, fx.REASON_NOT_COVERED, "Member is not active"
+        status, reason, note = (
+            Status.REGRETTED,
+            fx.REASON_NOT_COVERED,
+            "Member is not active",
+        )
     elif duplicate:
         status, reason = Status.REGRETTED, fx.REASON_DUPLICATE
     elif not on_time:
         status, reason = Status.REGRETTED, fx.REASON_LATE
     elif not in_cycle:
-        status, reason, note = Status.REGRETTED, fx.REASON_NOT_COVERED, "Treatment date is outside the plan period"
+        status, reason, note = (
+            Status.REGRETTED,
+            fx.REASON_NOT_COVERED,
+            "Treatment date is outside the plan period",
+        )
     elif not same_person:
         status, reason = Status.REGRETTED, fx.REASON_NAME_MISMATCH
     elif status != Status.REGRETTED and total_payable == 0:
@@ -213,7 +232,9 @@ def review(
         summary = f"The plan rules changed the decision to {status.lower()}: {(note or reason or 'see the checks').lower()}."
 
     if officer_status:
-        summary = f"The claim officer decided: {status.lower()}." + (f" {officer_remarks}" if officer_remarks else "")
+        summary = f"The claim officer decided: {status.lower()}." + (
+            f" {officer_remarks}" if officer_remarks else ""
+        )
 
     limit_before = max(plan["opd_limit"] - member["consumed"], 0)
     return Review(

@@ -22,8 +22,8 @@ export type Step = (typeof STEP)[keyof typeof STEP];
 
 export const STEP_LABEL: Record<Step, string> = {
   0: "Upload",
-  1: "Review & Decide",
-  2: "Final Check",
+  1: "Check Details",
+  2: "Settle",
   3: "Done",
 };
 
@@ -49,6 +49,7 @@ export const REVIEW_STEPS = [
   "Checking dates, patient and past claims",
   "Checking what the plan covers",
   "Working out the payout",
+  "Double-checking the settlement",
 ];
 
 // ACPS lookup values (x_claim_* tables), same as ocr-extract
@@ -124,16 +125,6 @@ export const STATUS_TONE: Record<Status, "good" | "warn" | "bad"> = {
 // ocr-extract and ACPS both use dd-mm-yyyy
 export const DATE_PATTERN = /^\d{2}-\d{2}-\d{4}$/;
 
-export const AUDIT_STEPS = [
-  "Reading the final decision",
-  "Matching the payout to the bills",
-  "Checking the details against the documents",
-  "Checking the officer remarks",
-];
-
-// one scan runs both the reading and the settlement
-export const SCAN_STEPS = [...EXTRACT_STEPS, ...REVIEW_STEPS];
-
 export const SETTLEMENT_OPTIONS = [
   { status: STATUS.SETTLED, label: STATUS_LABEL[STATUS.SETTLED] },
   {
@@ -142,3 +133,10 @@ export const SETTLEMENT_OPTIONS = [
   },
   { status: STATUS.REGRETTED, label: STATUS_LABEL[STATUS.REGRETTED] },
 ] as const;
+
+// the two AI calls, named the same everywhere a result is shown
+export const AI_CALL = {
+  READ: "AI 1 · Read documents",
+  SETTLE: "AI 2 · Settle & double-check",
+} as const;
+export type AiCall = (typeof AI_CALL)[keyof typeof AI_CALL];

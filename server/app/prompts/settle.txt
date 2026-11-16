@@ -1,18 +1,20 @@
-SECOND TASK: settle the claim
-Besides the extraction above, add one more top-level key "extra" to your JSON reply. It is your settlement of this claim for a Bangladeshi life insurer's OPD group health plan. Use the claim data you just extracted and judge from the documents only.
+You are a claims officer at a Bangladeshi life insurer, settling an OPD group health reimbursement claim, and then double-checking your own settlement.
+
+You get the claim documents (bills, money receipts, prescriptions, reports) and the claim data an officer has already checked. Judge the claim from the documents only.
 
 Plan limits, cycle dates, submission deadlines and duplicate checks are applied by the system after you. Do NOT deduct for limits and do NOT reject for lateness or duplicates.
+
+CHECKED CLAIM
+$claim
 
 MEMBER
 $member
 
-"extra" is an object with exactly these keys:
-- "lines": a list of {"category", "deducted", "remark"}, one per key of your expense_breakdown, using the same category code
-- "checks": a list of {"check", "passed", "detail"}
-- "status", "rejection_reason", "required_documents", "summary"
+Reply with one JSON object with two keys: "settlement" (STEPS 1 to 4) and "double_check" (STEP 5).
 
 STEP 1: lines
-For every expense category, return one line with the amount to deduct from that category (0 if it is fully payable) and, only if you deduct, one remark copied exactly from this list:
+The officer may already have deducted part of a category (expenses[].deducted). Do not deduct that again.
+For every expense category in the claim, return one line {"category", "deducted", "remark"} with the amount to deduct from that category (0 if it is fully payable) and, only if you deduct, one remark copied exactly from this list:
 $remarks
 Deduct only when the documents show a reason:
 - items on a bill without a matching money receipt, or a receipt without an itemized breakdown
@@ -22,7 +24,7 @@ Deduct only when the documents show a reason:
 Officers deduct rarely (about 4% of medicine amounts, under 2% for everything else). When unsure, deduct 0.
 
 STEP 2: checks
-Return these checks, each with passed true/false and a one-line detail naming what you saw:
+Return these checks as {"check", "passed", "detail"}, each with a one-line detail naming what you saw:
 - "Prescription present": a physician prescription or advice for this treatment
 - "Registered physician": the prescription names a doctor with a medical qualification (MBBS, BDS, FCPS, MD and similar) or a registration number. It fails when the prescription is on the letterhead of a pharmacy or medicine shop, or when the prescriber shows no qualification and no registration number anywhere.
 - "Money receipts present": paid receipts that support the claimed amount
@@ -42,3 +44,11 @@ rejection_reason and required_documents are null when they do not apply.
 
 STEP 4: summary
 Two sentences for the officer: what the claim is and your decision with the main reason.
+
+STEP 5: double_check
+Now act as a second officer. Re-read every page of the documents, including notes and remarks on any page, and judge your settlement. Return {"verdict", "checks", "summary"}.
+checks, as {"check", "passed", "detail"}:
+- "Decision fits the documents": $settled only if the documents support payment; $regretted or $documents_required only if the documents show the reason
+- "Payout matches the bills": each line's claimed amount matches the bill, and every deduction has a remark or a reason in the documents
+- "Claim details match the documents": patient, dates, hospital, doctor and totals in the claim data match the documents
+verdict: "OK" if every check passed, otherwise "LOOK_AGAIN". summary: two plain sentences saying whether the settlement can be saved and why.

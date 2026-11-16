@@ -1,10 +1,10 @@
 import type {
-  AuditResult,
   ClaimIn,
   Fixtures,
   Intimation,
   OracleRecord,
   Review,
+  SettleOut,
   Status,
 } from "./types";
 
@@ -24,12 +24,19 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const getFixtures = () => call<Fixtures>("/fixtures");
 
-// AI call 1: reads the documents and proposes the settlement in the same call
-export function extractClaim(file: File, memberCode: string) {
+// AI call 1: reads the documents
+export function extractClaim(file: File) {
   const form = new FormData();
   form.append("file", file);
-  form.append("member_code", memberCode);
   return call<Intimation>("/extract", { method: "POST", body: form });
+}
+
+// AI call 2: settles the officer-checked claim and double-checks it; the plan rules run in code
+export function settleClaim(file: File, claim: ClaimIn) {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("claim", JSON.stringify(claim));
+  return call<SettleOut>("/settle", { method: "POST", body: form });
 }
 
 export function approveClaim(
@@ -37,7 +44,7 @@ export function approveClaim(
   claim: ClaimIn,
   review: Review,
   reviewOfficer: string,
-  postAuditor: string,
+  auditOverrideRemarks: string,
 ) {
   return call<OracleRecord>("/approve", {
     method: "POST",
@@ -47,7 +54,7 @@ export function approveClaim(
       claim,
       review,
       review_officer: reviewOfficer,
-      post_auditor: postAuditor,
+      audit_override_remarks: auditOverrideRemarks,
     }),
   });
 }
@@ -64,13 +71,4 @@ export function decideClaim(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ claim, judgement, status, remarks }),
   });
-}
-
-// AI call 2: double-checks the officer's final decision against the documents
-export function auditClaim(file: File, claim: ClaimIn, review: Review) {
-  const form = new FormData();
-  form.append("file", file);
-  form.append("claim", JSON.stringify(claim));
-  form.append("review", JSON.stringify({ ...review, judgement: null }));
-  return call<AuditResult>("/audit", { method: "POST", body: form });
 }

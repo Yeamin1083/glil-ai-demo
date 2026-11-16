@@ -1,34 +1,44 @@
-import { Bot, Check, Layers, ShieldCheck, Sparkles } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
-import { useObjectUrl } from '@/shared/useObjectUrl'
+import { Bot, Check, Layers, ShieldCheck, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { useObjectUrl } from "@/shared/useObjectUrl";
 
 interface Props {
-  file: File
-  title: string
-  steps: string[]
+  file: File;
+  title: string;
+  steps: string[];
 }
 
-const STEP_MS = 1400
+const STEP_MS = 1400;
 
 export function ScanOverlay({ file, title, steps }: Props) {
-  const url = useObjectUrl(file)
-  const [active, setActive] = useState(0)
+  const url = useObjectUrl(file);
+  const [active, setActive] = useState(0);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setActive((i) => Math.min(i + 1, steps.length - 1)), STEP_MS)
-    return () => window.clearInterval(timer)
-  }, [steps.length])
+    const timer = window.setInterval(
+      () => setActive((i) => Math.min(i + 1, steps.length - 1)),
+      STEP_MS,
+    );
+    return () => window.clearInterval(timer);
+  }, [steps.length]);
 
-  const progress = Math.min(Math.round(((active + 1) / steps.length) * 100), 98)
+  const progress = Math.min(
+    Math.round(((active + 1) / steps.length) * 100),
+    98,
+  );
 
   return (
-    <Card className="grid items-center gap-8 p-6 md:grid-cols-[1.1fr_minmax(320px,0.9fr)] border-border/80 shadow-lg" aria-live="polite" aria-busy="true">
+    <Card
+      className="grid items-center gap-8 p-6 md:grid-cols-[1.1fr_minmax(320px,0.9fr)] border-border/80 shadow-lg"
+      aria-live="polite"
+      aria-busy="true"
+    >
       {/* Document Scanner Viewport */}
       <div className="relative isolate h-[52vh] overflow-hidden rounded-xl border border-slate-300 bg-slate-900 md:h-[min(68vh,680px)] shadow-inner">
-        {file.type === 'application/pdf' ? (
+        {file.type === "application/pdf" ? (
           <iframe
             src={url ? `${url}#toolbar=0&navpanes=0` : undefined}
             title="Document being processed"
@@ -36,7 +46,11 @@ export function ScanOverlay({ file, title, steps }: Props) {
             className="pointer-events-none size-full opacity-80 filter contrast-125"
           />
         ) : (
-          <img src={url || undefined} alt="Document being processed" className="size-full object-contain opacity-80" />
+          <img
+            src={url || undefined}
+            alt="Document being processed"
+            className="size-full object-contain opacity-80"
+          />
         )}
 
         {/* Laser Scanner Animation */}
@@ -61,10 +75,14 @@ export function ScanOverlay({ file, title, steps }: Props) {
             <Badge className="bg-[var(--glil-orange)] text-white gap-1 hover:bg-[var(--glil-orange)]">
               <Sparkles className="size-3" /> ACPS AI
             </Badge>
-            <span className="text-xs font-mono text-muted-foreground">{progress}% Complete</span>
+            <span className="text-xs font-mono text-muted-foreground">
+              {progress}% Complete
+            </span>
           </div>
 
-          <h2 className="text-2xl font-bold tracking-tight text-foreground shimmer-text">{title}</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground shimmer-text">
+            {title}
+          </h2>
           <p className="text-xs text-muted-foreground mt-1">
             This only takes a few seconds.
           </p>
@@ -85,7 +103,9 @@ export function ScanOverlay({ file, title, steps }: Props) {
               <Bot className="size-4 text-[var(--glil-orange)]" />
             </div>
             <div className="text-[11px] font-semibold">Reading</div>
-            <div className="text-[10px] text-emerald-600 font-medium">Working</div>
+            <div className="text-[10px] text-emerald-600 font-medium">
+              Working
+            </div>
           </div>
 
           <div className="rounded-lg border bg-muted/40 p-2.5 text-center">
@@ -93,7 +113,9 @@ export function ScanOverlay({ file, title, steps }: Props) {
               <Layers className="size-4 text-indigo-600" />
             </div>
             <div className="text-[11px] font-semibold">Calculating</div>
-            <div className="text-[10px] text-muted-foreground font-medium">Ready</div>
+            <div className="text-[10px] text-muted-foreground font-medium">
+              Ready
+            </div>
           </div>
 
           <div className="rounded-lg border bg-muted/40 p-2.5 text-center">
@@ -101,7 +123,9 @@ export function ScanOverlay({ file, title, steps }: Props) {
               <ShieldCheck className="size-4 text-emerald-600" />
             </div>
             <div className="text-[11px] font-semibold">Checking</div>
-            <div className="text-[10px] text-muted-foreground font-medium">Ready</div>
+            <div className="text-[10px] text-muted-foreground font-medium">
+              Ready
+            </div>
           </div>
         </div>
 
@@ -111,18 +135,22 @@ export function ScanOverlay({ file, title, steps }: Props) {
             <li
               key={step}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 transition-all',
-                i < active && 'bg-emerald-50/70 text-emerald-900 border border-emerald-100',
-                i === active && 'bg-muted text-foreground font-semibold border shadow-2xs',
-                i > active && 'text-muted-foreground opacity-60',
+                "flex items-center gap-3 rounded-md px-3 py-2 transition-all",
+                i < active &&
+                  "bg-emerald-50/70 text-emerald-900 border border-emerald-100",
+                i === active &&
+                  "bg-muted text-foreground font-semibold border shadow-2xs",
+                i > active && "text-muted-foreground opacity-60",
               )}
             >
               <span
                 className={cn(
-                  'grid size-5 shrink-0 place-items-center rounded-full text-[10px] border',
-                  i < active && 'border-emerald-500 bg-emerald-500 text-white',
-                  i === active && 'border-[var(--glil-orange)] text-[var(--glil-orange)] animate-spin border-t-transparent',
-                  i > active && 'border-muted-foreground/30 text-muted-foreground',
+                  "grid size-5 shrink-0 place-items-center rounded-full text-[10px] border",
+                  i < active && "border-emerald-500 bg-emerald-500 text-white",
+                  i === active &&
+                    "border-[var(--glil-orange)] text-[var(--glil-orange)] animate-spin border-t-transparent",
+                  i > active &&
+                    "border-muted-foreground/30 text-muted-foreground",
                 )}
                 aria-hidden="true"
               >
@@ -134,5 +162,5 @@ export function ScanOverlay({ file, title, steps }: Props) {
         </ol>
       </div>
     </Card>
-  )
+  );
 }

@@ -43,8 +43,12 @@ export interface Plan {
 export interface Intimation {
   intimation_number: string;
   extraction: Extraction;
-  // the settlement proposed in the same AI call as the extraction
-  judgement: Review["judgement"];
+}
+
+// what the settle call returns: the settlement with the plan rules applied, and its double-check
+export interface SettleOut {
+  review: Review;
+  double_check: AuditResult;
 }
 
 export interface Member {
