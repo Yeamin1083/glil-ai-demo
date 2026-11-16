@@ -24,6 +24,10 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const getFixtures = () => call<Fixtures>("/fixtures");
 
+// forgets the claims saved during the demo, so re-running a claim is not a duplicate
+export const resetDemo = () =>
+  call<{ ok: boolean }>("/reset", { method: "POST" });
+
 // AI call 1: reads the documents
 export function extractClaim(file: File) {
   const form = new FormData();

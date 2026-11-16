@@ -295,3 +295,10 @@ def test_check_names_are_restored_when_the_model_squashes_the_spaces():
         == "Same patient on all documents"
     )
     assert fx.canonical_check("Something new", fx.SETTLE_CHECKS) == "Something new"
+
+
+def test_reset_forgets_claims_saved_during_the_demo():
+    marker = {"treatment_date": "01-01-2026", "claimed_amount": 1}
+    next(iter(fx.HISTORY.values())).append(marker)
+    fx.reset()
+    assert all(marker not in history for history in fx.HISTORY.values())

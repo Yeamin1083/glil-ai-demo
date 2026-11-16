@@ -2,6 +2,7 @@
 read-only from ACPS_T and gitignored because it holds real member and staff names.
 Without it, three fictional members on ACPS_T plan_id 59 are used."""
 
+import copy
 import json
 from pathlib import Path
 
@@ -90,6 +91,15 @@ MEMBERS: dict[str, dict] = _data["members"]
 USERS: list[dict] = _data["users"]
 # claims per member before the demo; /approve appends, so re-submitting shows the duplicate check
 HISTORY: dict[str, list[dict]] = {code: m["history"] for code, m in MEMBERS.items()}
+_START = copy.deepcopy(MEMBERS)
+
+
+def reset() -> None:
+    """Back to the exported state: forgets claims saved during the demo (duplicates, used limits)."""
+    global MEMBERS, HISTORY
+    MEMBERS = copy.deepcopy(_START)
+    HISTORY = {code: m["history"] for code, m in MEMBERS.items()}
+
 
 # code-decided outcomes, phrased the way officers write them in x_claim_expenses_gh
 REMARK_NO_LIMIT = "No limit available"

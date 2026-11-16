@@ -4,6 +4,7 @@ import {
   Database,
   FileText,
   Home,
+  RotateCcw,
   ShieldCheck,
   User,
   UserCheck,
@@ -25,6 +26,7 @@ import {
   decideClaim,
   extractClaim,
   getFixtures,
+  resetDemo,
   settleClaim,
 } from "./features/claim/api";
 import { IntimationStep } from "./features/claim/components/IntimationStep";
@@ -253,6 +255,13 @@ export default function App() {
     loadFixtures();
   };
 
+  // the server forgets the claims saved in this demo, then the screen starts over
+  const resetAll = () =>
+    run(async () => {
+      await resetDemo();
+      reset();
+    });
+
   return (
     <div className="min-h-svh bg-slate-50/70 text-slate-900">
       {/* Top Corporate Bar */}
@@ -341,6 +350,16 @@ export default function App() {
 
           {/* Persona Switcher ("Acting as") */}
           <div className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetAll}
+              disabled={busy}
+              title="Forget the claims saved in this demo, so they are not flagged as duplicates"
+              className="h-9 gap-1.5 text-xs cursor-pointer"
+            >
+              <RotateCcw className="size-3.5" /> Reset demo
+            </Button>
             <div className="hidden lg:flex flex-col text-right">
               <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
                 Signed in as

@@ -105,6 +105,15 @@ class ApproveIn(BaseModel):
     )
 
 
+@app.post("/api/reset")
+def reset():
+    """Forget the claims saved during the demo, so re-running a claim is not a duplicate."""
+    global _intimation_seq
+    fx.reset()
+    _intimation_seq = count(1)
+    return {"ok": True}
+
+
 @app.post("/api/approve")
 def approve(body: ApproveIn):
     """Post-audit sign-off; stands in for the Oracle write."""
