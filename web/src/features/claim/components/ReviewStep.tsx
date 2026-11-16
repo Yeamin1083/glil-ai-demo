@@ -710,7 +710,7 @@ export function ReviewStep(props: Props) {
                 by item in the Deducted column to continue.
               </span>
             ) : (
-              <span>Happy with the details? Settle the claim.</span>
+              <span>Happy with the details? Process and check the claim.</span>
             )}
           </div>
           {/* Action button renamed to simple, clear title */}
@@ -726,7 +726,7 @@ export function ReviewStep(props: Props) {
             onClick={onSubmit}
             className="w-full sm:w-auto bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
           >
-            {busy ? "Working…" : "Settle Claim"}{" "}
+            {busy ? "Working…" : "Process & Check"}{" "}
             <ArrowRight className="size-4" />
           </Button>
         </CardFooter>

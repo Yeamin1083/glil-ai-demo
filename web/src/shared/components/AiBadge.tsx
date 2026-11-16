@@ -5,7 +5,7 @@ import { AI_CALL, type AiCall } from "@/shared/constants";
 
 const STYLE: Record<AiCall, string> = {
   [AI_CALL.READ]: "border-orange-200 bg-orange-50 text-[var(--glil-orange)]",
-  [AI_CALL.SETTLE]: "border-indigo-200 bg-indigo-50 text-indigo-700",
+  [AI_CALL.PROCESS]: "border-indigo-200 bg-indigo-50 text-indigo-700",
 };
 
 // says which of the two AI calls produced the result next to it

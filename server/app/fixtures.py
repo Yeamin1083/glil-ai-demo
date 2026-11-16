@@ -139,6 +139,28 @@ MODEL_REJECTION_REASONS = (
     "DENTAL & OPTICAL TREATMENT NOT COVERED",
 )
 
+# the check names the settle prompt asks for; the model sometimes squashes the spaces, so replies are matched back
+SETTLE_CHECKS = (
+    "Prescription present",
+    "Registered physician",
+    "Money receipts present",
+    "Same patient on all documents",
+    "Dates consistent",
+    "Bill totals add up",
+    "Treatment covered",
+)
+DOUBLE_CHECKS = (
+    "Decision fits the documents",
+    "Payout matches the bills",
+    "Claim details match the documents",
+)
+
+
+def canonical_check(name: str, known: tuple[str, ...]) -> str:
+    squashed = name.replace(" ", "").lower()
+    return next((k for k in known if k.replace(" ", "").lower() == squashed), name)
+
+
 # a plan covers dental and optical treatment only if it lists one of these items
 DENTAL_OPTICAL_ITEMS = (
     "SPECTACLES",

@@ -38,7 +38,7 @@ export function DecisionPanel({ review, busy, onDecide }: Props) {
           Your decision
         </h3>
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <AiBadge call={AI_CALL.SETTLE} /> suggests
+          <AiBadge call={AI_CALL.PROCESS} /> suggests
           <strong
             className={cn("text-sm", TONE_TEXT[STATUS_TONE[review.ai_status]])}
           >

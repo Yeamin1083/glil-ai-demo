@@ -78,6 +78,10 @@ async def settle(file: UploadFile, claim: Annotated[str, Form()]):
         )
     except ReviewFailed as e:
         raise HTTPException(502, str(e))
+    for c in result.settlement.checks:
+        c.check = fx.canonical_check(c.check, fx.SETTLE_CHECKS)
+    for c in result.double_check.checks:
+        c.check = fx.canonical_check(c.check, fx.DOUBLE_CHECKS)
     return SettleOut(
         review=review(parsed, result.settlement), double_check=result.double_check
     )

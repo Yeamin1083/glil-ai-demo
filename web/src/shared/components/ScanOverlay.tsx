@@ -60,7 +60,7 @@ export function ScanOverlay({ file, title, steps }: Props) {
         {/* High-tech HUD Overlay Elements */}
         <div className="absolute top-4 left-4 flex items-center gap-2 rounded-md bg-slate-950/80 px-2.5 py-1 text-[11px] font-mono text-emerald-400 backdrop-blur border border-emerald-500/30">
           <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
-          <span>Reading the document…</span>
+          <span>Reading the claim documents…</span>
         </div>
 
         <div className="absolute bottom-4 right-4 rounded-md bg-slate-950/80 px-2.5 py-1 text-[11px] font-mono text-slate-300 backdrop-blur border border-slate-700">

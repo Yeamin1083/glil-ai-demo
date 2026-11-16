@@ -487,8 +487,8 @@ export default function App() {
               file={scanning.file}
               title={
                 scanning.agent === "extract"
-                  ? "Reading your documents..."
-                  : "Settling the claim and double-checking it..."
+                  ? "Reading the claim documents..."
+                  : "Processing the claim and checking it..."
               }
               steps={
                 scanning.agent === "extract" ? EXTRACT_STEPS : REVIEW_STEPS

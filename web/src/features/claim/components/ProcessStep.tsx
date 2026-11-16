@@ -109,89 +109,6 @@ export function ProcessStep(props: Props) {
 
   return (
     <div className="grid gap-6">
-      <Card
-        className={cn(
-          "shadow-md",
-          audit.verdict === "OK"
-            ? "border-emerald-200"
-            : "border-2 border-red-400 bg-red-50/50",
-        )}
-      >
-        <CardHeader className="glil-card-header rounded-t-xl pb-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle
-                  className={cn(
-                    "text-base font-bold tracking-tight",
-                    audit.verdict !== "OK" && "text-red-800",
-                  )}
-                >
-                  Double-check
-                </CardTitle>
-                <AiBadge call={AI_CALL.SETTLE} />
-              </div>
-              <CardDescription
-                className={cn(
-                  "text-xs",
-                  audit.verdict === "OK"
-                    ? "text-muted-foreground"
-                    : "font-medium text-red-900",
-                )}
-              >
-                {audit.summary}
-              </CardDescription>
-            </div>
-            <Badge
-              className={cn(
-                "text-xs",
-                audit.verdict === "OK"
-                  ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                  : "border-red-600 bg-red-600 text-white",
-              )}
-            >
-              {audit.verdict === "OK" ? "Looks fine" : "Look again"}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-2 sm:grid-cols-2">
-          {audit.checks.map((c) => (
-            <div
-              key={c.check}
-              className={cn(
-                "flex items-start gap-2 rounded-lg border p-3 text-xs",
-                !c.passed && "border-red-400 bg-red-100/70",
-              )}
-            >
-              {c.passed ? (
-                <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
-              ) : (
-                <X className="mt-0.5 size-4 shrink-0 stroke-[3] text-red-600" />
-              )}
-              <div>
-                <div
-                  className={cn(
-                    "font-semibold",
-                    c.passed ? "text-foreground" : "text-red-900",
-                  )}
-                >
-                  {c.check}
-                </div>
-                <div
-                  className={
-                    c.passed
-                      ? "text-muted-foreground"
-                      : "font-medium text-red-800"
-                  }
-                >
-                  {c.detail}
-                </div>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
       {/* Executive Decision Banner */}
       <Card
         className="ai-top border-border/80 shadow-md overflow-hidden"
@@ -209,7 +126,7 @@ export function ProcessStep(props: Props) {
                     Claim Officer Decision
                   </Badge>
                 ) : (
-                  <AiBadge call={AI_CALL.SETTLE} />
+                  <AiBadge call={AI_CALL.PROCESS} />
                 )}
                 {review.single_step_approval && (
                   <Badge className="bg-emerald-600 text-white text-xs font-semibold gap-1 hover:bg-emerald-600">
@@ -418,6 +335,89 @@ export function ProcessStep(props: Props) {
         </div>
       </Card>
 
+      <Card
+        className={cn(
+          "shadow-md",
+          audit.verdict === "OK"
+            ? "border-emerald-200"
+            : "border-2 border-red-400 bg-red-50/50",
+        )}
+      >
+        <CardHeader className="glil-card-header rounded-t-xl pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle
+                  className={cn(
+                    "text-base font-bold tracking-tight",
+                    audit.verdict !== "OK" && "text-red-800",
+                  )}
+                >
+                  Double-check
+                </CardTitle>
+                <AiBadge call={AI_CALL.PROCESS} />
+              </div>
+              <CardDescription
+                className={cn(
+                  "text-xs",
+                  audit.verdict === "OK"
+                    ? "text-muted-foreground"
+                    : "font-medium text-red-900",
+                )}
+              >
+                {audit.summary}
+              </CardDescription>
+            </div>
+            <Badge
+              className={cn(
+                "text-xs",
+                audit.verdict === "OK"
+                  ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                  : "border-red-600 bg-red-600 text-white",
+              )}
+            >
+              {audit.verdict === "OK" ? "Looks fine" : "Look again"}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-2 sm:grid-cols-2">
+          {audit.checks.map((c) => (
+            <div
+              key={c.check}
+              className={cn(
+                "flex items-start gap-2 rounded-lg border p-3 text-xs",
+                !c.passed && "border-red-400 bg-red-100/70",
+              )}
+            >
+              {c.passed ? (
+                <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
+              ) : (
+                <X className="mt-0.5 size-4 shrink-0 stroke-[3] text-red-600" />
+              )}
+              <div>
+                <div
+                  className={cn(
+                    "font-semibold",
+                    c.passed ? "text-foreground" : "text-red-900",
+                  )}
+                >
+                  {c.check}
+                </div>
+                <div
+                  className={
+                    c.passed
+                      ? "text-muted-foreground"
+                      : "font-medium text-red-800"
+                  }
+                >
+                  {c.detail}
+                </div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
       {/* Side-by-Side Benchmark (when historic sample available) */}
       {officerDecision &&
         (sameClaim(officerDecision, review) ? (
@@ -563,7 +563,7 @@ export function ProcessStep(props: Props) {
                   <CardTitle className="text-base font-bold tracking-tight">
                     Policy Checks
                   </CardTitle>
-                  <AiBadge call={AI_CALL.SETTLE} />
+                  <AiBadge call={AI_CALL.PROCESS} />
                 </div>
                 <CardDescription className="text-xs text-muted-foreground">
                   {AGENT.AUDIT}: 6 automatic checks

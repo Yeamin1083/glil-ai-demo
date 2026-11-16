@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -7,15 +8,46 @@ import {
   FileCheck,
   Layers,
   RefreshCw,
+  XCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { STATUS } from "@/shared/constants";
+import {
+  STATUS,
+  STATUS_TONE,
+  TONE_TEXT,
+  type Status,
+} from "@/shared/constants";
 import { bdt, humanize } from "@/shared/format";
 import type { OracleRecord } from "../types";
+
+// the saved page takes its colour and wording from the decision, not always green
+const TONE = {
+  good: {
+    hero: "from-emerald-600 via-teal-600 to-emerald-700",
+    border: "border-emerald-200/80",
+    icon: CheckCircle2,
+  },
+  warn: {
+    hero: "from-amber-500 via-amber-600 to-orange-600",
+    border: "border-amber-200",
+    icon: AlertTriangle,
+  },
+  bad: {
+    hero: "from-red-600 via-red-700 to-rose-800",
+    border: "border-red-200",
+    icon: XCircle,
+  },
+} as const;
+
+const TITLE: Record<Status, string> = {
+  [STATUS.SETTLED]: "Claim Approved",
+  [STATUS.DOCUMENTS_REQUIRED]: "Documents Requested",
+  [STATUS.REGRETTED]: "Claim Regretted",
+};
 
 interface Props {
   record: OracleRecord;
@@ -31,7 +63,10 @@ export function OracleStep({ record, aiSeconds, onNext }: Props) {
   const voucherId = `ACPS-GL-${intimationNo.replace(/[^a-zA-Z0-9]/g, "")}`;
   const memberCode = String(record.member_code || "");
   const claimStatus = String(record.claim_status || STATUS.SETTLED);
-  const approvalStatus = String(record.approval_status || "APPROVED");
+  // only a settled claim goes for approval
+  const approval = record.approval_status
+    ? humanize(String(record.approval_status))
+    : "Not needed";
   const claimedAmt = Number(record.claimed_amount) || 0;
   const payableAmt = Number(record.payable_amount) || 0;
   const reviewedBy = String(record.reviewed_by || "Claim Officer");
@@ -40,7 +75,9 @@ export function OracleStep({ record, aiSeconds, onNext }: Props) {
     ? String(record.settled_at).replace("T", " ")
     : "Just now";
 
-  const settled = claimStatus === STATUS.SETTLED;
+  const status = claimStatus as Status;
+  const tone = STATUS_TONE[status] ?? "good";
+  const HeroIcon = TONE[tone].icon;
 
   const copyPayload = () => {
     navigator.clipboard.writeText(JSON.stringify(record, null, 2));
@@ -51,17 +88,19 @@ export function OracleStep({ record, aiSeconds, onNext }: Props) {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Executive Hero Confirmation Card (Action Item 10: ACPS Submit) */}
-      <Card className="overflow-hidden border-emerald-200/80 shadow-md">
-        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 px-6 py-6 text-white">
+      <Card className={`overflow-hidden shadow-md ${TONE[tone].border}`}>
+        <div
+          className={`bg-gradient-to-r ${TONE[tone].hero} px-6 py-6 text-white`}
+        >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="grid size-12 place-items-center rounded-xl bg-white/15 backdrop-blur">
-                <CheckCircle2 className="size-7 text-white" />
+                <HeroIcon className="size-7 text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-bold tracking-tight">
-                    {settled ? "Claim Approved" : "Decision Saved"}
+                    {TITLE[status] ?? "Decision Saved"}
                   </h2>
                   <Badge className="border-0 bg-white/20 text-white hover:bg-white/30 text-xs">
                     Saved in ACPS
@@ -104,7 +143,9 @@ export function OracleStep({ record, aiSeconds, onNext }: Props) {
               <div className="text-xs text-muted-foreground">
                 Claim Decision
               </div>
-              <div className="text-sm font-semibold text-emerald-700 capitalize">
+              <div
+                className={`text-sm font-semibold capitalize ${TONE_TEXT[tone]}`}
+              >
                 {claimStatus.toLowerCase()}
               </div>
               {claimedAmt > 0 && (
@@ -115,8 +156,10 @@ export function OracleStep({ record, aiSeconds, onNext }: Props) {
             </div>
             <div className="rounded-lg border bg-muted/40 p-3.5">
               <div className="text-xs text-muted-foreground">Approval</div>
-              <div className="text-sm font-semibold text-indigo-700">
-                {humanize(approvalStatus)}
+              <div
+                className={`text-sm font-semibold ${record.approval_status ? "text-indigo-700" : "text-muted-foreground"}`}
+              >
+                {approval}
               </div>
             </div>
             <div className="rounded-lg border bg-muted/40 p-3.5">
@@ -170,7 +213,7 @@ export function OracleStep({ record, aiSeconds, onNext }: Props) {
                 {aiSeconds.toFixed(1)} seconds
               </div>
               <div className="text-[11px] text-muted-foreground">
-                Reading the documents and checking the claim
+                Reading the claim documents and checking the claim
               </div>
             </div>
           </div>

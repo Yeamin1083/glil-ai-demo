@@ -23,7 +23,7 @@ export type Step = (typeof STEP)[keyof typeof STEP];
 export const STEP_LABEL: Record<Step, string> = {
   0: "Upload",
   1: "Check Details",
-  2: "Settle",
+  2: "Process & Check",
   3: "Done",
 };
 
@@ -36,7 +36,7 @@ export const AGENT = {
 
 // what each subsystem is doing, shown while it runs
 export const EXTRACT_STEPS = [
-  "Reading the documents",
+  "Reading the claim documents",
   "Finding bills, receipts and prescriptions",
   "Finding the patient, doctor and dates",
   "Sorting bill lines by type",
@@ -49,7 +49,7 @@ export const REVIEW_STEPS = [
   "Checking dates, patient and past claims",
   "Checking what the plan covers",
   "Working out the payout",
-  "Double-checking the settlement",
+  "Checking the result against the documents",
 ];
 
 // ACPS lookup values (x_claim_* tables), same as ocr-extract
@@ -137,6 +137,6 @@ export const SETTLEMENT_OPTIONS = [
 // the two AI calls, named the same everywhere a result is shown
 export const AI_CALL = {
   READ: "AI 1 · Read documents",
-  SETTLE: "AI 2 · Settle & double-check",
+  PROCESS: "AI 2 · Process & check",
 } as const;
 export type AiCall = (typeof AI_CALL)[keyof typeof AI_CALL];

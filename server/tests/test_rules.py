@@ -283,3 +283,15 @@ def test_settle_is_one_call_that_settles_and_double_checks(monkeypatch):
         and body["review"]["total_payable"] == 1500
     )
     assert body["double_check"]["verdict"] == "LOOK_AGAIN"
+
+
+def test_check_names_are_restored_when_the_model_squashes_the_spaces():
+    assert (
+        fx.canonical_check("Decisionfits thedocuments", fx.DOUBLE_CHECKS)
+        == "Decision fits the documents"
+    )
+    assert (
+        fx.canonical_check("Samepatient on alldocuments", fx.SETTLE_CHECKS)
+        == "Same patient on all documents"
+    )
+    assert fx.canonical_check("Something new", fx.SETTLE_CHECKS) == "Something new"
