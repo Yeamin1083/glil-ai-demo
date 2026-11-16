@@ -4,11 +4,13 @@ check_duplicate_claims, cut down to OPD. Each member carries their own plan."""
 
 import re
 from datetime import date, datetime
+from difflib import SequenceMatcher
 
 from app import fixtures as fx
-from app.schemas import AuditCheck, ClaimIn, ExpenseOut, ModelReview, Review
+from app.schemas import AuditCheck, ClaimIn, ExpenseOut, ModelReview, Review, Status
 
 DATE_FORMAT = "%d-%m-%Y"
+NAME_SPELLING_MATCH = 0.85
 
 
 def parse_date(value: str) -> date:
@@ -23,14 +25,20 @@ def _name_parts(name: str) -> set[str]:
     return {p for p in cleaned.split() if p not in _NAME_TITLES and len(p) > 1}
 
 
+def _same_word(x: str, y: str) -> bool:
+    # a one-letter spelling slip is the same name: Shajahan = Shahjahan
+    return x == y or SequenceMatcher(None, x, y).ratio() >= NAME_SPELLING_MATCH
+
+
 def names_match(member_name: str, patient_name: str) -> bool:
     """Same person if every full part of the shorter name is in the longer one;
-    titles, initials and punctuation are ignored ('Mr. A.K.M. Nurul Huda' = 'Nurul Huda')."""
+    titles, initials, punctuation and small spelling slips are ignored
+    ('Mr. A.K.M. Nurul Huda' = 'Nurul Huda')."""
     a, b = _name_parts(member_name), _name_parts(patient_name)
     if not a or not b:
         return False
     shorter, longer = sorted((a, b), key=len)
-    return shorter <= longer
+    return all(any(_same_word(s, w) for w in longer) for s in shorter)
 
 
 def is_duplicate(claim: ClaimIn) -> bool:
@@ -53,8 +61,11 @@ def apply_limits(
     for expense in claim.expenses:
         line = judged.get(expense.category)
         ai_deducted = min(max(line.deducted, 0), expense.claimed) if line else 0
-        deducted = min(expense.deducted + ai_deducted, expense.claimed)
-        remarks = [r for r in (expense.remarks, line.remark if line and ai_deducted else None) if r]
+        # the AI proposed its deduction before the officer looked; when the officer enters one, theirs wins
+        if expense.deducted:
+            deducted, remarks = min(expense.deducted, expense.claimed), [expense.remarks] if expense.remarks else []
+        else:
+            deducted, remarks = ai_deducted, [line.remark] if line and line.remark and ai_deducted else []
         payable = expense.claimed - deducted
         used = member["items"].get(expense.category, {"amount": 0, "count": 0})
         max_count = plan["item_count_limits"].get(expense.category)
@@ -108,7 +119,9 @@ def apply_limits(
     return out, remaining
 
 
-def review(claim: ClaimIn, model: ModelReview) -> Review:
+def review(
+    claim: ClaimIn, model: ModelReview, officer_status: Status | None = None, officer_remarks: str = ""
+) -> Review:
     member = fx.MEMBERS[claim.member_code]
     plan = member["plan"]
     treated = parse_date(claim.treatment_date)
@@ -156,22 +169,27 @@ def review(claim: ClaimIn, model: ModelReview) -> Review:
 
     status, reason = model.status, model.rejection_reason
     # a model rejection must name a listed reason; otherwise ask the member instead
-    if status == "REGRETTED" and reason not in fx.MODEL_REJECTION_REASONS:
-        status = "DOCUMENTS REQUIRED"
+    if status == Status.REGRETTED and reason not in fx.MODEL_REJECTION_REASONS:
+        status = Status.DOCUMENTS_REQUIRED
     note = None  # plain words for the regret remark when the ACPS reason is just "OTHERS"
     if not member["is_active"]:
-        status, reason, note = "REGRETTED", fx.REASON_NOT_COVERED, "Member is not active"
+        status, reason, note = Status.REGRETTED, fx.REASON_NOT_COVERED, "Member is not active"
     elif duplicate:
-        status, reason = "REGRETTED", fx.REASON_DUPLICATE
+        status, reason = Status.REGRETTED, fx.REASON_DUPLICATE
     elif not on_time:
-        status, reason = "REGRETTED", fx.REASON_LATE
+        status, reason = Status.REGRETTED, fx.REASON_LATE
     elif not in_cycle:
-        status, reason, note = "REGRETTED", fx.REASON_NOT_COVERED, "Treatment date is outside the plan period"
+        status, reason, note = Status.REGRETTED, fx.REASON_NOT_COVERED, "Treatment date is outside the plan period"
     elif not same_person:
-        status, reason = "REGRETTED", fx.REASON_NAME_MISMATCH
-    elif status != "REGRETTED" and total_payable == 0:
-        status, reason = "REGRETTED", fx.REASON_NO_LIMIT
-    if status != "REGRETTED":
+        status, reason = Status.REGRETTED, fx.REASON_NAME_MISMATCH
+    elif status != Status.REGRETTED and total_payable == 0:
+        status, reason = Status.REGRETTED, fx.REASON_NO_LIMIT
+    ai_status = status
+    if officer_status:  # the claim officer has the final say, with their own remarks
+        status, reason = officer_status, None
+        if status == Status.REGRETTED:
+            reason, note = fx.REASON_NOT_COVERED, officer_remarks or None
+    if status != Status.REGRETTED:
         reason = None
     else:
         # nothing is paid on a regretted claim, so every line shows it, matching the total
@@ -182,15 +200,20 @@ def review(claim: ClaimIn, model: ModelReview) -> Review:
 
     # ACPS refuses DOCUMENTS REQUIRED without this text
     required_documents = None
-    if status == "DOCUMENTS REQUIRED":
-        required_documents = model.required_documents or "; ".join(
-            c.detail for c in model.checks if not c.passed
+    if status == Status.DOCUMENTS_REQUIRED:
+        required_documents = (
+            (officer_remarks if officer_status else None)
+            or model.required_documents
+            or "; ".join(c.detail for c in model.checks if not c.passed)
         )
 
     # the model wrote its summary before the rules above may have changed the decision
     summary = model.summary
     if status != model.status:
         summary = f"The plan rules changed the decision to {status.lower()}: {(note or reason or 'see the checks').lower()}."
+
+    if officer_status:
+        summary = f"The claim officer decided: {status.lower()}." + (f" {officer_remarks}" if officer_remarks else "")
 
     limit_before = max(plan["opd_limit"] - member["consumed"], 0)
     return Review(
@@ -203,9 +226,13 @@ def review(claim: ClaimIn, model: ModelReview) -> Review:
         total_claimed=sum(e.claimed for e in expenses),
         total_payable=total_payable,
         limit_before=limit_before,
-        limit_after=remaining if status != "REGRETTED" else limit_before,
-        single_step_approval=status == "SETTLED"
+        limit_after=remaining if status != Status.REGRETTED else limit_before,
+        single_step_approval=status == Status.SETTLED
         and total_payable <= fx.SINGLE_STEP_APPROVAL_MAX,
+        ai_status=ai_status,
+        decided_by_officer=bool(officer_status),
+        officer_remarks=officer_remarks if officer_status else "",
+        judgement=model,
     )
 
 
@@ -215,7 +242,7 @@ def record_settlement(claim: ClaimIn, result: Review) -> None:
     fx.HISTORY[claim.member_code].append(
         {"treatment_date": claim.treatment_date, "claimed_amount": claim.claimed_amount}
     )
-    if result.status != "SETTLED":
+    if result.status != Status.SETTLED:
         return
     member["consumed"] += result.total_payable
     for expense in result.expenses:

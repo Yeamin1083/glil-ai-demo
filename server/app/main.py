@@ -4,13 +4,13 @@ from typing import Annotated
 
 import httpx
 from fastapi import FastAPI, Form, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from app import fixtures as fx
 from app.config import settings
-from app.gemini import ReviewFailed, review_claim
+from app.gemini import ReviewFailed, audit_claim, settle_prompt
 from app.rules import record_settlement, review
-from app.schemas import ClaimIn, Review
+from app.schemas import AuditReview, ClaimIn, DecideIn, ModelReview, Review, Status
 
 app = FastAPI(title="GLIL AI claims demo")
 
@@ -41,13 +41,16 @@ def fixtures():
 
 
 @app.post("/api/extract")
-async def extract(file: UploadFile):
-    """Agent 1: the real ocr-extract service, unchanged."""
+async def extract(file: UploadFile, member_code: Annotated[str, Form()]):
+    """AI call 1: ocr-extract reads the claim and, in the same call, proposes the settlement."""
+    if member_code not in fx.MEMBERS:
+        raise HTTPException(422, "Unknown member.")
     async with httpx.AsyncClient(timeout=120) as client:
         try:
             response = await client.post(
                 f"{settings.OCR_EXTRACT_URL}/api/v1/claims/extract",
                 headers={"X-API-Key": settings.OCR_EXTRACT_API_KEY},
+                data={"extra_prompt": settle_prompt(member_code)},
                 files={"file": (file.filename, await file.read(), file.content_type)},
             )
         except httpx.HTTPError as e:
@@ -59,26 +62,25 @@ async def extract(file: UploadFile):
         raise HTTPException(
             response.status_code, body.get("message") or "Extraction failed."
         )
+    extraction = body["data"]
+    try:
+        judgement = ModelReview.model_validate(extraction.pop("extra", None))
+    except ValidationError:
+        raise HTTPException(502, "The AI did not return a settlement, retry.")
     # intimation creates the claim, so it gets its number here
     return {
         "intimation_number": f"GH26-DEMO-{next(_intimation_seq):04d}",
-        "extraction": body["data"],
+        "extraction": extraction,
+        "judgement": judgement,
     }
 
 
-@app.post("/api/review", response_model=Review)
-async def review_endpoint(file: UploadFile, claim: Annotated[str, Form()]):
-    """Agents 2 and 3: one model call for the judgement, then the code rules."""
-    parsed = ClaimIn.model_validate_json(claim)
-    if parsed.member_code not in fx.MEMBERS:
+@app.post("/api/decide", response_model=Review)
+def decide(body: DecideIn):
+    """Applies the plan rules to the settlement, with the claim officer's own decision and remarks if they changed it. No model call."""
+    if body.claim.member_code not in fx.MEMBERS:
         raise HTTPException(422, "Unknown member.")
-    try:
-        judgement = await review_claim(
-            parsed, await file.read(), file.content_type or "application/pdf"
-        )
-    except ReviewFailed as e:
-        raise HTTPException(502, str(e))
-    return review(parsed, judgement)
+    return review(body.claim, body.judgement, body.status, body.remarks)
 
 
 class ApproveIn(BaseModel):
@@ -87,6 +89,22 @@ class ApproveIn(BaseModel):
     review: Review
     review_officer: str
     post_auditor: str
+
+
+@app.post("/api/audit", response_model=AuditReview)
+async def audit_endpoint(
+    file: UploadFile, claim: Annotated[str, Form()], review: Annotated[str, Form()]
+):
+    """The second AI call: double-checks the officer's final decision before it is saved."""
+    try:
+        return await audit_claim(
+            ClaimIn.model_validate_json(claim),
+            Review.model_validate_json(review),
+            await file.read(),
+            file.content_type or "application/pdf",
+        )
+    except ReviewFailed as e:
+        raise HTTPException(502, str(e))
 
 
 @app.post("/api/approve")
@@ -106,7 +124,7 @@ def approve(body: ApproveIn):
             "APPROVED"
             if body.review.single_step_approval
             else "DOCTOR APPROVAL PENDING"
-            if body.review.status == "SETTLED"
+            if body.review.status == Status.SETTLED
             else None
         ),
         "reviewed_by": body.review_officer,

@@ -1,8 +1,12 @@
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel
 
-Status = Literal["SETTLED", "REGRETTED", "DOCUMENTS REQUIRED"]
+class Status(StrEnum):
+    SETTLED = "SETTLED"
+    DOCUMENTS_REQUIRED = "DOCUMENTS REQUIRED"
+    REGRETTED = "REGRETTED"
 
 
 class ExpenseIn(BaseModel):
@@ -79,3 +83,23 @@ class Review(BaseModel):
     limit_before: int
     limit_after: int
     single_step_approval: bool
+    ai_status: Status  # the decision before the claim officer changed it
+    decided_by_officer: bool = False
+    officer_remarks: str = ""
+    # kept so the officer can change the decision without another model call
+    judgement: ModelReview | None = None
+
+
+class AuditReview(BaseModel):
+    """The second AI call: a double-check of the officer's final decision before it is saved."""
+
+    verdict: Literal["OK", "LOOK_AGAIN"]
+    checks: list[AuditCheck]
+    summary: str
+
+
+class DecideIn(BaseModel):
+    claim: ClaimIn
+    judgement: ModelReview
+    status: Status | None = None  # None keeps the AI's decision
+    remarks: str = ""

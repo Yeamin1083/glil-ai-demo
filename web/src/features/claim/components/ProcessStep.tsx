@@ -7,17 +7,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { Typewriter } from '@/shared/components/Typewriter'
-import { AGENT, AMOUNT_TOLERANCE_BDT, NAME_CHECK, STATUS_LABEL, STATUS_TONE, TONE_TEXT } from '@/shared/constants'
+import { AGENT, AMOUNT_TOLERANCE_BDT, NAME_CHECK, STATUS, STATUS_LABEL, STATUS_TONE, TONE_TEXT } from '@/shared/constants'
 import { bdt, humanize } from '@/shared/format'
-import type { OfficerDecision, Review } from '../types'
+import type { AuditResult, OfficerDecision, Review } from '../types'
+import { regretReasons } from '../decision'
 import { OfficerComparison } from './OfficerComparison'
 import { LimitCells, LimitGroupHead, LimitHeads } from './PlanLimit'
 
 interface Props {
   review: Review
+  audit: AuditResult
   officerDecision: OfficerDecision | null
   reviewedBy: string
-  canSignOff: boolean
   busy: boolean
   onBack: () => void
   onSignOff: () => void
@@ -32,27 +33,14 @@ function sameClaim(officer: OfficerDecision, review: Review) {
 }
 
 export function ProcessStep(props: Props) {
-  const { review, officerDecision, reviewedBy, canSignOff, busy, onBack, onSignOff } = props
+  const { review, audit, officerDecision, reviewedBy, busy, onBack, onSignOff } = props
   const [confirming, setConfirming] = useState(false)
+  // ask first when the claim is not settled or the double-check says to look again
+  const needsConfirm = review.status !== STATUS.SETTLED || audit.verdict !== 'OK'
   const failedChecks = review.checks.filter((c) => !c.passed)
   const failed = failedChecks.length
   const tone = STATUS_TONE[review.status]
-  // every reason once: the main reason, each failed check, and remarks that say something new
-  const mainReason = review.rejection_reason ? humanize(review.rejection_reason) : null
-  const regretReasons: { title: string; note?: string }[] = []
-  // ACPS's bare "Others" says nothing; the failed checks below explain it
-  if (mainReason && !(mainReason === 'Others' && failedChecks.length)) regretReasons.push({ title: mainReason })
-  failedChecks.forEach((c) => regretReasons.push({ title: `Failed check: ${c.check}`, note: c.detail }))
-  const remarks = new Map<string, string[]>()
-  review.expenses.forEach((e) =>
-    e.remarks.forEach((r) => {
-      const text = r.replace(/^claim regretted:\s*/i, '')
-      if (mainReason && text.toLowerCase() === mainReason.toLowerCase()) return
-      remarks.set(text, [...(remarks.get(text) ?? []), humanize(e.category)])
-    }),
-  )
-  remarks.forEach((cats, text) => regretReasons.push({ title: text, note: `Applies to: ${cats.join(', ')}` }))
-  if (!regretReasons.length) regretReasons.push({ title: 'Something does not match the plan.' })
+  const reasons = regretReasons(review)
   const deductionsTotal = review.total_claimed - review.total_payable
 
   return (
@@ -64,7 +52,7 @@ export function ProcessStep(props: Props) {
             <div className="space-y-4 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="border-orange-200 bg-orange-50 text-[var(--glil-orange)] text-xs font-semibold gap-1">
-                  <Sparkles className="size-3" /> AI Decision
+                  <Sparkles className="size-3" /> {review.decided_by_officer ? 'Claim Officer Decision' : 'AI Decision'}
                 </Badge>
                 {review.single_step_approval && (
                   <Badge className="bg-emerald-600 text-white text-xs font-semibold gap-1 hover:bg-emerald-600">
@@ -74,14 +62,14 @@ export function ProcessStep(props: Props) {
               </div>
 
               <div>
-                <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Suggested Decision</p>
+                <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Decision</p>
                 <div className="flex items-center gap-3 mt-1">
                   <span className={cn('text-3xl sm:text-4xl font-extrabold tracking-tight', TONE_TEXT[tone])}>
                     {STATUS_LABEL[review.status]}
                   </span>
-                  {review.status === 'SETTLED' ? (
+                  {review.status === STATUS.SETTLED ? (
                     <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs">Can be paid</Badge>
-                  ) : review.status === 'DOCUMENTS REQUIRED' ? (
+                  ) : review.status === STATUS.DOCUMENTS_REQUIRED ? (
                     <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">Documents needed</Badge>
                   ) : (
                     <Badge className="bg-red-100 text-red-800 border-red-300 text-xs">Cannot be paid</Badge>
@@ -89,8 +77,15 @@ export function ProcessStep(props: Props) {
                 </div>
               </div>
 
+              {review.decided_by_officer && (
+                <p className="rounded-lg border border-orange-200 bg-orange-50/60 px-3 py-2 text-xs text-slate-800">
+                  The claim officer changed the decision from <strong>{STATUS_LABEL[review.ai_status]}</strong>.
+                  {review.officer_remarks && <> Remarks: {review.officer_remarks}</>}
+                </p>
+              )}
+
               {/* Action Item 4: Show All Reasons for Settlement clearly at the top after suggested status */}
-              {review.status === 'SETTLED' && (
+              {review.status === STATUS.SETTLED && (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs space-y-2.5 shadow-2xs">
                   <div className="flex items-center gap-2 font-bold text-emerald-900 text-sm">
                     <CheckCircle2 className="size-4 text-emerald-600" />
@@ -125,14 +120,14 @@ export function ProcessStep(props: Props) {
                 </div>
               )}
 
-              {review.status === 'REGRETTED' && (
+              {review.status === STATUS.REGRETTED && (
                 <div className="rounded-xl border border-red-200 bg-red-50/70 p-4 text-xs space-y-2 shadow-2xs">
                   <div className="flex items-center gap-2 font-bold text-red-900 text-sm">
                     <AlertTriangle className="size-4 text-red-600" />
-                    <span>Why we can&apos;t pay ({regretReasons.length}):</span>
+                    <span>Why we can&apos;t pay ({reasons.length}):</span>
                   </div>
                   <ul className="grid gap-2">
-                    {regretReasons.map((r) => (
+                    {reasons.map((r) => (
                       <li key={r.title} className="flex items-start gap-2 bg-white/80 rounded-lg p-3 border border-red-200 text-red-950 font-medium">
                         <X className="size-3.5 text-red-600 shrink-0 mt-0.5" />
                         <div>
@@ -145,7 +140,7 @@ export function ProcessStep(props: Props) {
                 </div>
               )}
 
-              {review.status === 'DOCUMENTS REQUIRED' && (
+              {review.status === STATUS.DOCUMENTS_REQUIRED && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs space-y-2 shadow-2xs">
                   <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
                     <Info className="size-4 text-amber-600" />
@@ -331,38 +326,66 @@ export function ProcessStep(props: Props) {
         </Card>
       </div>
 
-      {/* Final Sign-Off & Submission */}
+      <Card className={cn('shadow-sm', audit.verdict === 'OK' ? 'border-emerald-200' : 'border-amber-300')}>
+        <CardHeader className="glil-card-header rounded-t-xl pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-base font-bold tracking-tight">Double-check</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">{audit.summary}</CardDescription>
+            </div>
+            <Badge
+              className={cn(
+                'text-xs',
+                audit.verdict === 'OK'
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  : 'bg-amber-100 text-amber-800 border-amber-300',
+              )}
+            >
+              {audit.verdict === 'OK' ? 'Looks fine' : 'Look again'}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-2 sm:grid-cols-2">
+          {audit.checks.map((c) => (
+            <div key={c.check} className="flex items-start gap-2 rounded-lg border p-3 text-xs">
+              {c.passed ? (
+                <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
+              ) : (
+                <X className="mt-0.5 size-3.5 shrink-0 text-red-600" />
+              )}
+              <div>
+                <div className="font-semibold text-foreground">{c.check}</div>
+                <div className="text-muted-foreground">{c.detail}</div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Final check, then save */}
       <Card className="border-border/80 shadow-sm">
         <CardHeader className="glil-card-header rounded-t-xl pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base font-bold tracking-tight">Final Approval</CardTitle>
+              <CardTitle className="text-base font-bold tracking-tight">Final Check</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
                 Checked by Claim Officer <span className="font-semibold text-foreground">{reviewedBy}</span>.{' '}
                 {review.single_step_approval
                   ? `The payout (${bdt(review.total_payable)}) can be approved in one step.`
-                  : review.status === 'SETTLED'
+                  : review.status === STATUS.SETTLED
                     ? 'A doctor needs to review this before payment.'
                     : ''}
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-xs gap-1 border-indigo-200 bg-indigo-50 text-indigo-700">
-              <FileCheck className="size-3" /> Ready to approve
+              <FileCheck className="size-3" /> Ready to save
             </Badge>
           </div>
         </CardHeader>
 
         <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t bg-muted/20 px-6 py-4">
           <div className="text-xs text-muted-foreground">
-            {!canSignOff ? (
-              <span className="text-amber-800 font-semibold">
-                To approve, pick Final Approver (Imran Chowdhury) from the user list at the top.
-              </span>
-            ) : (
-              <span className="text-emerald-700 font-semibold">
-                ✓ You are the Final Approver. You can approve now.
-              </span>
-            )}
+            <span className="text-emerald-700 font-semibold">Everything look right? Save the claim to ACPS.</span>
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -371,12 +394,12 @@ export function ProcessStep(props: Props) {
             </Button>
             <Button
               size="lg"
-              disabled={!canSignOff || busy}
-              onClick={() => (review.status === 'SETTLED' ? onSignOff() : setConfirming(true))}
+              disabled={busy}
+              onClick={() => (needsConfirm ? setConfirming(true) : onSignOff())}
               className="bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
             >
               <Send className="size-4" />
-              {busy ? 'Approving…' : 'Approve Claim'}
+              {busy ? 'Saving…' : 'Save to ACPS'}
             </Button>
           </div>
         </CardFooter>
@@ -387,8 +410,9 @@ export function ProcessStep(props: Props) {
           <DialogHeader>
             <DialogTitle>Save this claim anyway?</DialogTitle>
             <DialogDescription>
-              The AI did not settle this claim. Its decision is &quot;{STATUS_LABEL[review.status]}&quot;. If you
-              continue, the claim is saved to ACPS with that decision.
+              {review.status !== STATUS.SETTLED && <>The decision is &quot;{STATUS_LABEL[review.status]}&quot;. </>}
+              {audit.verdict !== 'OK' && <>The double-check says to look again. </>}
+              If you continue, the claim is saved to ACPS with this decision.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

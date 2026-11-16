@@ -1,9 +1,10 @@
-import { CheckCircle2, ChevronDown, ChevronUp, Clock, Copy, FileCheck, Layers, RefreshCw, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronUp, Clock, Copy, FileCheck, Layers, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { STATUS } from '@/shared/constants'
 import { bdt, humanize } from '@/shared/format'
 import type { OracleRecord } from '../types'
 
@@ -20,15 +21,14 @@ export function OracleStep({ record, aiSeconds, onNext }: Props) {
   const intimationNo = String(record.intimation_number || 'GH26-DEMO-0001')
   const voucherId = `ACPS-GL-${intimationNo.replace(/[^a-zA-Z0-9]/g, '')}`
   const memberCode = String(record.member_code || '')
-  const claimStatus = String(record.claim_status || 'SETTLED')
+  const claimStatus = String(record.claim_status || STATUS.SETTLED)
   const approvalStatus = String(record.approval_status || 'APPROVED')
   const claimedAmt = Number(record.claimed_amount) || 0
   const payableAmt = Number(record.payable_amount) || 0
   const reviewedBy = String(record.reviewed_by || 'Claim Officer')
-  const postAuditedBy = String(record.post_audited_by || 'Claim Analyst')
   const settledAt = record.settled_at ? String(record.settled_at).replace('T', ' ') : 'Just now'
 
-  const settled = claimStatus === 'SETTLED'
+  const settled = claimStatus === STATUS.SETTLED
 
   const copyPayload = () => {
     navigator.clipboard.writeText(JSON.stringify(record, null, 2))
@@ -93,27 +93,15 @@ export function OracleStep({ record, aiSeconds, onNext }: Props) {
 
           <Separator />
 
-          {/* Audit & Compliance Sign-Off Trail (Action Item 3: Claim Officer) */}
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Who Approved This
-            </h3>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex items-start gap-3 rounded-lg border p-3">
-                <FileCheck className="mt-0.5 size-4 text-[var(--glil-orange)] shrink-0" />
-                <div className="text-xs">
-                  <div className="font-medium text-foreground">Claim Officer Review</div>
-                  <div className="text-muted-foreground">Verified by: <span className="font-semibold text-foreground">{reviewedBy}</span></div>
-                  <div className="text-muted-foreground">Details checked against the original documents</div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 rounded-lg border p-3">
-                <ShieldCheck className="mt-0.5 size-4 text-emerald-600 shrink-0" />
-                <div className="text-xs">
-                  <div className="font-medium text-foreground">Final Check</div>
-                  <div className="text-muted-foreground">Approved by: <span className="font-semibold text-foreground">{postAuditedBy}</span></div>
-                  <div className="text-muted-foreground">{settled ? 'Approved and sent for payment' : 'Saved with the decision above'}</div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Handled By</h3>
+            <div className="flex items-start gap-3 rounded-lg border p-3">
+              <FileCheck className="mt-0.5 size-4 text-[var(--glil-orange)] shrink-0" />
+              <div className="text-xs">
+                <div className="font-medium text-foreground">Claim Officer</div>
+                <div className="text-muted-foreground">
+                  <span className="font-semibold text-foreground">{reviewedBy}</span> checked the details against the
+                  documents, confirmed the decision and saved the claim.
                 </div>
               </div>
             </div>

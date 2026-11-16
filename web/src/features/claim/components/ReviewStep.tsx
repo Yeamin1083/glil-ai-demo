@@ -16,7 +16,8 @@ import { bdt, humanize } from '@/shared/format'
 import { useObjectUrl } from '@/shared/useObjectUrl'
 import { expenseTotal, type ClaimForm, type FormField } from '../form'
 import { LimitCells, LimitGroupHead, LimitHeads, limitBefore } from './PlanLimit'
-import type { Confidence, Extraction, Member } from '../types'
+import type { Confidence, Extraction, Member, Review, Status } from '../types'
+import { DecisionPanel } from './DecisionPanel'
 
 interface Props {
   file: File
@@ -28,7 +29,12 @@ interface Props {
   confidence: Partial<Record<FormField, Confidence>>
   canSubmit: boolean
   busy: boolean
+  review: Review
+  reviewVersion: number
+  stale: boolean
   onChange: (form: ClaimForm) => void
+  onRecheck: () => void
+  onDecide: (status: Status, remarks: string) => void
   onSubmit: () => void
 }
 
@@ -54,7 +60,7 @@ function ConfidenceBadge({ level }: { level: Confidence | undefined }) {
 }
 
 export function ReviewStep(props: Props) {
-  const { file, intimationNumber, hrApproved, extraction, member, form, confidence, canSubmit, busy, onChange, onSubmit } = props
+  const { file, intimationNumber, hrApproved, extraction, member, form, confidence, canSubmit, busy, review, reviewVersion, stale, onChange, onRecheck, onDecide, onSubmit } = props
   const previewUrl = useObjectUrl(file)
 
   // Track user edits for Step 3 & Action Item 6: Green for AI, Orange for Human
@@ -159,9 +165,9 @@ export function ReviewStep(props: Props) {
           </a>
         </div>
         {file.type === 'application/pdf' ? (
-          <iframe src={previewUrl} title="Claim documents" className="h-[calc(100vh-175px)] w-full rounded-lg bg-slate-100 border" />
+          <iframe src={previewUrl || undefined} title="Claim documents" className="h-[calc(100vh-175px)] w-full rounded-lg bg-slate-100 border" />
         ) : (
-          <img src={previewUrl} alt="Claim documents" className="h-[calc(100vh-175px)] w-full rounded-lg bg-slate-100 object-contain border" />
+          <img src={previewUrl || undefined} alt="Claim documents" className="h-[calc(100vh-175px)] w-full rounded-lg bg-slate-100 object-contain border" />
         )}
       </Card>
 
@@ -170,9 +176,9 @@ export function ReviewStep(props: Props) {
         <CardHeader className="glil-card-header rounded-t-xl pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <CardTitle className="text-xl font-bold tracking-tight">Check the Details</CardTitle>
+              <CardTitle className="text-xl font-bold tracking-tight">Review &amp; Decide</CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                Claim <span className="font-mono font-semibold text-foreground">{intimationNumber}</span> · Check these details against the documents.
+                Claim <span className="font-mono font-semibold text-foreground">{intimationNumber}</span> · Check the details against the documents, then confirm the settlement.
               </CardDescription>
             </div>
             <CardAction>
@@ -427,6 +433,15 @@ export function ReviewStep(props: Props) {
             </div>
           </section>
 
+          <DecisionPanel
+            key={reviewVersion}
+            review={review}
+            stale={stale}
+            busy={busy}
+            onRecheck={onRecheck}
+            onDecide={onDecide}
+          />
+
           {/* Mismatch Warning */}
           {gap !== 0 && (
             <Alert className="border-amber-300 bg-amber-50/70 text-amber-900">
@@ -469,18 +484,20 @@ export function ReviewStep(props: Props) {
               <span className="text-amber-800 font-medium">
                 The bills show a discount of {bdt(billDiscount)}. Enter it item by item in the Deducted column to continue.
               </span>
+            ) : stale ? (
+              <span className="text-amber-800 font-medium">Update the decision, so it matches your changes.</span>
             ) : (
-              <span>Looks good? Go ahead and check this claim.</span>
+              <span>Happy with the details and the decision? Go to the final check.</span>
             )}
           </div>
           {/* Action button renamed to simple, clear title */}
           <Button
             size="lg"
-            disabled={!canSubmit || busy || badDates || form.expenses.length === 0 || needsDiscountBreakdown}
+            disabled={!canSubmit || busy || badDates || form.expenses.length === 0 || needsDiscountBreakdown || stale}
             onClick={onSubmit}
             className="w-full sm:w-auto bg-[var(--glil-orange)] hover:bg-[var(--glil-orange-hover)] text-white gap-2 font-medium"
           >
-            {busy ? 'Checking…' : 'Check Claim'} <ArrowRight className="size-4" />
+            {busy ? 'Working…' : 'Go to Final Check'} <ArrowRight className="size-4" />
           </Button>
         </CardFooter>
       </Card>

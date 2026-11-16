@@ -30,13 +30,13 @@ export function ScanOverlay({ file, title, steps }: Props) {
       <div className="relative isolate h-[52vh] overflow-hidden rounded-xl border border-slate-300 bg-slate-900 md:h-[min(68vh,680px)] shadow-inner">
         {file.type === 'application/pdf' ? (
           <iframe
-            src={`${url}#toolbar=0&navpanes=0`}
+            src={url ? `${url}#toolbar=0&navpanes=0` : undefined}
             title="Document being processed"
             tabIndex={-1}
             className="pointer-events-none size-full opacity-80 filter contrast-125"
           />
         ) : (
-          <img src={url} alt="Document being processed" className="size-full object-contain opacity-80" />
+          <img src={url || undefined} alt="Document being processed" className="size-full object-contain opacity-80" />
         )}
 
         {/* Laser Scanner Animation */}

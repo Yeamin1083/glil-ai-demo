@@ -119,6 +119,12 @@ def test_names_match_ignores_titles_and_initials():
     assert names_match("Nurul Huda", "Md. A.K.M. Nurul Huda")
     assert not names_match("Rahim Uddin", "Mr. AKM Nurul Huda")
     assert not names_match("Rahim Uddin", "")
+    assert names_match("MD. SHAHJAHAN SHEIKH", "Md. Shajahan Sheikh")  # one-letter spelling slip
+    assert not names_match("Rahim Uddin", "Karim Uddin")
+    assert names_match("Nurul Islam Chowdhury", "Nurul")  # prescription with only a first name
+    assert not names_match("Nurul Islam Chowdhury", "Rahim")
+    assert names_match("Nurul Islam Chowdhury", "Chowdhury Nurul")  # order swapped, middle name missing
+    assert names_match("Mst. Rokeya Begum", "Rokeya")  # title on one side only
 
 
 def test_other_persons_documents_are_regretted_for_name_mismatch():
@@ -144,3 +150,107 @@ def test_summary_follows_the_final_decision_when_rules_override_the_model():
 def test_dental_optical_cover_depends_on_the_plan_items():
     assert fx.covers_dental_optical({"item_limits": {"SPECTACLES": 3000}, "item_count_limits": {}})
     assert not fx.covers_dental_optical({"item_limits": {"MEDICINE": 100}, "item_count_limits": {}})
+
+
+def test_claim_officer_can_change_the_decision_with_remarks():
+    c = claim("DEMO-7049-0001", {"MEDICINE": 1500}, treated="01-01-2020")  # outside the plan period
+    ai = review(c, settled())
+    assert ai.status == "REGRETTED" and ai.total_payable == 0
+
+    settle = review(c, settled(), "SETTLED", "Member showed the older cycle applies")
+    assert settle.status == "SETTLED" and settle.total_payable == 1500
+    assert settle.ai_status == "REGRETTED" and settle.decided_by_officer
+    assert "older cycle" in settle.summary
+
+    regret = review(claim("DEMO-7049-0001", {"MEDICINE": 1500}), settled(), "REGRETTED", "Not related to the illness")
+    assert regret.total_payable == 0 and "Not related" in regret.expenses[0].remarks[0]
+
+
+def test_decide_endpoint_changes_the_decision_without_a_model_call():
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    c = claim("DEMO-7049-0001", {"MEDICINE": 1500})
+    r = TestClient(app).post(
+        "/api/decide",
+        json={"claim": c.model_dump(), "judgement": settled().model_dump(), "status": "REGRETTED", "remarks": "Not related"},
+    )
+    body = r.json()
+    assert r.status_code == 200
+    assert body["status"] == "REGRETTED" and body["ai_status"] == "SETTLED" and body["total_payable"] == 0
+
+
+def test_audit_endpoint_returns_the_second_calls_verdict(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app import main
+    from app.schemas import AuditReview
+
+    async def fake_audit(claim, review, document, mime_type):
+        assert review.decided_by_officer  # the officer's final decision is what gets audited
+        return AuditReview(verdict="LOOK_AGAIN", checks=[], summary="Check the dates.")
+
+    monkeypatch.setattr(main, "audit_claim", fake_audit)
+    c = claim("DEMO-7049-0001", {"MEDICINE": 1500})
+    final = review(c, settled(), "REGRETTED", "Not related")
+    r = TestClient(main.app).post(
+        "/api/audit",
+        data={"claim": c.model_dump_json(), "review": final.model_dump_json()},
+        files={"file": ("a.pdf", b"%PDF-1.4", "application/pdf")},
+    )
+    assert r.status_code == 200 and r.json()["verdict"] == "LOOK_AGAIN"
+
+
+def test_extract_is_one_call_that_returns_the_extraction_and_the_settlement(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app import main
+
+    sent = {}
+    reply = {
+        "status": True,
+        "data": {
+            "patient_name": "Test",
+            "extra": {"lines": [], "checks": [], "status": "SETTLED", "summary": "Fine."},
+        },
+    }
+
+    class FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return reply
+
+    class FakeClient:
+        def __init__(self, **kw): ...
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *a): ...
+        async def post(self, url, **kw):
+            sent.update(kw)
+            return FakeResponse()
+
+    monkeypatch.setattr(main.httpx, "AsyncClient", FakeClient)
+    member = next(iter(fx.MEMBERS))
+    r = TestClient(main.app).post(
+        "/api/extract", data={"member_code": member}, files={"file": ("a.pdf", b"%PDF-1.4", "application/pdf")}
+    )
+    body = r.json()
+    assert r.status_code == 200
+    assert body["judgement"]["status"] == "SETTLED" and "extra" not in body["extraction"]
+    assert "plan_covers_dental_and_optical" in sent["data"]["extra_prompt"]  # the settlement rides on the same call
+
+
+def test_decide_without_a_status_keeps_the_ai_decision():
+    c = claim("DEMO-7049-0001", {"MEDICINE": 1500})
+    result = review(c, settled())
+    assert result.status == "SETTLED" and not result.decided_by_officer
+
+
+def test_officer_deduction_replaces_the_ai_one_instead_of_adding_to_it():
+    c = claim("DEMO-7049-0001", {"MEDICINE": 1500})
+    c.expenses[0].deducted = 169
+    ai = settled([LineJudgement(category="MEDICINE", deducted=300, remark="Calcium cost not payable")])
+    result = review(c, ai)
+    assert result.expenses[0].deducted == 169 and result.total_payable == 1331
